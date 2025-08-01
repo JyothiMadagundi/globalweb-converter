@@ -2,11 +2,11 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "java -jar app.jar"
 healthcheckPath = "/"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
-[build.env]
+[deploy.env]
 SPRING_PROFILES_ACTIVE = "production"
+JAVA_OPTS = "-Xmx512m -Xms256m"
