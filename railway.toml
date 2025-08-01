@@ -2,12 +2,11 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "java -jar target/html-translator-0.0.1-SNAPSHOT.jar"
+startCommand = "java -jar app.jar"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
-[[build.env]]
-name = "SPRING_PROFILES_ACTIVE"
-value = "production"
+[build.env]
+SPRING_PROFILES_ACTIVE = "production"
