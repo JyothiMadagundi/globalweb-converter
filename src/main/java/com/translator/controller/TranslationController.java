@@ -21,6 +21,8 @@ import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/")
@@ -38,6 +40,18 @@ public class TranslationController {
     public String index(Model model) {
         model.addAttribute("translationRequest", new TranslationRequest());
         return "index_classic";
+    }
+
+    @GetMapping("/health")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> health() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("status", "UP");
+        status.put("service", "GlobalWeb Converter");
+        status.put("timestamp", System.currentTimeMillis());
+        status.put("version", "1.0.0");
+        log.info("Health check requested - service is UP");
+        return ResponseEntity.ok(status);
     }
 
     @PostMapping("/translate")
