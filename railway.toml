@@ -5,8 +5,3 @@ builder = "dockerfile"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
-
-[deploy.env]
-SPRING_PROFILES_ACTIVE = "production"
-JAVA_OPTS = "-Xmx512m -Xms256m"

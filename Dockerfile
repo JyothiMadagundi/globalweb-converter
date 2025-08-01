@@ -1,66 +1,30 @@
-# Use a more stable base image for building
-FROM eclipse-temurin:17-jdk-alpine AS build
+# Simple, reliable Dockerfile optimized for Railway
+FROM openjdk:17-jdk-slim
 
-# Install Maven
-RUN apk add --no-cache maven
-
-# Set working directory
-WORKDIR /app
-
-# Copy pom.xml and download dependencies first (for better caching)
-COPY pom.xml .
-RUN mvn dependency:resolve -B
-
-# Copy source code
-COPY src ./src
-
-# Build the application with explicit settings and error checking
-RUN mvn clean package -DskipTests -B \
-    -Dmaven.compiler.source=17 \
-    -Dmaven.compiler.target=17 \
-    -Dproject.build.sourceEncoding=UTF-8
-
-# Debug: List target directory contents
-RUN echo "=== TARGET DIRECTORY CONTENTS ===" && ls -la target/
-
-# Verify jar file exists
-RUN test -f target/html-translator-0.0.1-SNAPSHOT.jar || (echo "JAR file not found! Contents:" && ls -la target/ && exit 1)
-
-# Runtime stage with minimal image
-FROM eclipse-temurin:17-jre-alpine
-
-# Install curl for health checks
-RUN apk add --no-cache curl
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -S appuser -u 1001 -G appgroup
+# Install Maven and curl
+RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy the jar file from build stage with verification
-COPY --from=build /app/target/html-translator-0.0.1-SNAPSHOT.jar app.jar
+# Copy project files
+COPY . .
 
-# Verify the jar file was copied correctly
-RUN test -f app.jar || (echo "app.jar not found after copy!" && ls -la && exit 1)
+# Build the application
+RUN mvn clean package -DskipTests -B
 
-# Change ownership to non-root user
-RUN chown appuser:appgroup app.jar
+# Verify build
+RUN ls -la target/ && test -f target/html-translator-0.0.1-SNAPSHOT.jar
 
-# Switch to non-root user
-USER appuser
-
-# Expose port
-EXPOSE 8080
-
-# Health check with longer timeout for startup
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
-
-# Set JVM options for better performance and memory usage
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=80.0 -server"
+# Set environment variables for Railway
+ENV JAVA_OPTS="-Xmx400m -Xms200m -Djava.security.egd=file:/dev/./urandom"
 ENV SPRING_PROFILES_ACTIVE=production
+ENV SERVER_PORT=${PORT:-8080}
 
-# Run the application with better startup options
-CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Expose port (Railway will override with PORT env var)
+EXPOSE ${PORT:-8080}
+
+# Start the application with Railway-optimized settings
+CMD java $JAVA_OPTS \
+    -Dserver.port=${PORT:-8080} \
+    -jar target/html-translator-0.0.1-SNAPSHOT.jar
