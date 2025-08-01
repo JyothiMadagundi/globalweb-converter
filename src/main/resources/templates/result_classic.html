@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformation Complete - GlobalWeb Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+            --border-color: #bdc3c7;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--success-color) 0%, #229954 100%);
+            color: var(--white);
+            padding: 40px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            font-weight: 300;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: -20px auto 50px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .card-header {
+            background: var(--white);
+            border-bottom: 2px solid var(--success-color);
+            padding: 20px 30px;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .stats-row {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .preview-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .preview-header {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-header h4 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 70vh;
+            min-height: 500px;
+            border: none;
+            background: var(--white);
+        }
+
+        .action-buttons {
+            background: var(--white);
+            padding: 20px 25px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            color: var(--white);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+            color: var(--white);
+        }
+
+        .btn-success:hover {
+            background-color: #219a52;
+            border-color: #219a52;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            color: var(--white);
+        }
+
+        .btn-outline-primary {
+            background-color: transparent;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--accent-color);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-outline-secondary {
+            background-color: transparent;
+            border-color: var(--text-muted);
+            color: var(--text-muted);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--text-muted);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-left-color: var(--success-color);
+            color: #155724;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-left-color: var(--danger-color);
+            color: #721c24;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            border-left-color: var(--accent-color);
+            color: #0c5460;
+        }
+
+        .code-snippet {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .info-panel {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .info-panel h5 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .info-panel p {
+            margin: 0;
+            color: var(--text-dark);
+        }
+
+        .resize-handle {
+            background: var(--border-color);
+            height: 5px;
+            cursor: ns-resize;
+            position: relative;
+        }
+
+        .resize-handle:hover {
+            background: var(--accent-color);
+        }
+
+        .fullscreen-btn {
+            background: transparent;
+            border: none;
+            color: var(--white);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Classic Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes successPulse {
+            0%, 100% { 
+                color: #27ae60;
+                transform: scale(1);
+            }
+            50% { 
+                color: #2ecc71;
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+
+        /* Animated Elements */
+        .animated-title {
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .animated-subtitle {
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .success-pulse {
+            animation: successPulse 2s ease-in-out infinite;
+        }
+
+        .main-content {
+            animation: slideInLeft 0.8s ease-out 0.6s both;
+        }
+
+        .preview-container {
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .preview-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-row {
+            animation: slideInLeft 0.8s ease-out 1s both;
+        }
+
+        .stat-item {
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: scale(1.05);
+        }
+
+        .btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-panel {
+            animation: fadeInUp 0.8s ease-out 1.2s both;
+        }
+
+        .card {
+            animation: fadeInUp 0.8s ease-out 1.4s both;
+        }
+
+        .fullscreen-btn {
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.2);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .resize-handle {
+            transition: all 0.3s ease;
+        }
+
+        .resize-handle:hover {
+            background: var(--accent-color);
+            height: 8px;
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Smooth Page Transitions */
+        body {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 0 15px;
+                margin-top: -10px;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+                min-width: auto;
+            }
+            
+            .preview-frame {
+                height: 50vh;
+                min-height: 300px;
+            }
+            
+            /* Reduce animations on mobile */
+            .preview-container:hover {
+                transform: translateY(-2px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <h1 class="animated-title"><i class="fas fa-check-circle me-3 success-pulse"></i>Transformation Complete!</h1>
+            <p class="animated-subtitle">Your HTML content is now globally accessible with instant multi-language translation capabilities</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- Alert Messages -->
+        <div th:if="${error}" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span th:text="${error}"></span>
+        </div>
+        
+        <div th:if="${success}" class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+        </div>
+
+        <!-- Translation Stats -->
+        <div class="stats-row" th:if="${result}">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <span class="stat-number" th:text="${result.detectedLanguage ?: 'Auto'}">zh</span>
+                        <span class="stat-label">Detected Language</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <span class="stat-number" th:text="${result.processingTimeMs ?: 0} + 'ms'">150ms</span>
+                        <span class="stat-label">Processing Time</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <span class="stat-number">✅</span>
+                        <span class="stat-label">Widget Injected</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <span class="stat-number">Ready</span>
+                        <span class="stat-label">Status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Container -->
+        <div class="preview-container" th:if="${result?.translatedHtml}">
+            <div class="preview-header">
+                <h4><i class="fas fa-eye me-2"></i>Live Preview - Your Enhanced HTML</h4>
+                <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+            
+            <iframe id="previewFrame" class="preview-frame" th:srcdoc="${result.translatedHtml}"></iframe>
+            
+            <div class="resize-handle" id="resizeHandle"></div>
+            
+            <div class="action-buttons">
+                <button onclick="copyToClipboard()" class="btn btn-primary">
+                    <i class="fas fa-copy me-2"></i>Copy HTML Code
+                </button>
+                
+                <form th:action="@{/translate/download}" method="post" style="flex: 1;" th:object="${translationRequest}">
+                    <input type="hidden" th:field="*{htmlContent}">
+                    <input type="hidden" th:field="*{sourceLanguage}">
+                    <input type="hidden" th:field="*{targetLanguage}">
+                    <input type="hidden" th:field="*{fileName}">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-download me-2"></i>Download HTML File
+                    </button>
+                </form>
+                
+                <a href="/" class="btn btn-outline-primary">
+                    <i class="fas fa-plus me-2"></i>New Translation
+                </a>
+                
+                <button onclick="refreshPreview()" class="btn btn-outline-secondary">
+                    <i class="fas fa-refresh me-2"></i>Refresh Preview
+                </button>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div class="info-panel">
+            <h5><i class="fas fa-lightbulb me-2"></i>What's Next?</h5>
+            <p><strong>Your HTML file is now enhanced with multi-language translation capabilities!</strong> You can see the live preview above. 
+            The translation interface will appear at the top of your page, allowing users to translate the content to any of 100+ languages instantly. 
+            Download the file and open it in any web browser to test the translation functionality.</p>
+        </div>
+
+        <!-- Technical Details (Collapsible) -->
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#technicalDetails">
+                        <i class="fas fa-code me-2"></i>Technical Details
+                        <i class="fas fa-chevron-down ms-2"></i>
+                    </button>
+                </h3>
+            </div>
+            <div class="collapse" id="technicalDetails">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Injected Widget Code:</h6>
+                            <div class="code-snippet">
+&lt;div id="google_translate_element"&gt;&lt;/div&gt;
+&lt;script&gt;
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: '<span th:text="${result?.detectedLanguage ?: 'auto'}">zh</span>'
+  }, 'google_translate_element');
+}
+&lt;/script&gt;
+&lt;script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"&gt;&lt;/script&gt;
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>File Information:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Detected Language:</strong> <span th:text="${result?.detectedLanguage ?: 'Unknown'}">zh</span></li>
+                                <li><strong>Target Language:</strong> <span th:text="${result?.targetLanguage ?: 'en'}">en</span></li>
+                                <li><strong>Processing Time:</strong> <span th:text="${result?.processingTimeMs ?: 0}">150</span>ms</li>
+                                <li><strong>Widget Position:</strong> Top of &lt;body&gt; tag</li>
+                                <li><strong>External Dependencies:</strong> Google Translate API (CDN)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        // Store the translated HTML content
+        const translatedHtmlContent = /*[[${result?.translatedHtml}]]*/ '';
+        
+        // Copy to clipboard functionality
+        function copyToClipboard() {
+            if (translatedHtmlContent) {
+                navigator.clipboard.writeText(translatedHtmlContent).then(function() {
+                    showNotification('HTML code copied to clipboard!', 'success');
+                }, function(err) {
+                    console.error('Could not copy text: ', err);
+                    // Fallback method
+                    const textArea = document.createElement('textarea');
+                    textArea.value = translatedHtmlContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('HTML code copied to clipboard!', 'success');
+                });
+            } else {
+                showNotification('No content to copy!', 'error');
+            }
+        }
+        
+        // Refresh preview
+        function refreshPreview() {
+            const iframe = document.getElementById('previewFrame');
+            iframe.src = iframe.src;
+            showNotification('Preview refreshed!', 'info');
+        }
+        
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            const previewFrame = document.getElementById('previewFrame');
+            const fullscreenBtn = document.querySelector('.fullscreen-btn i');
+            
+            if (previewFrame.style.height === '90vh') {
+                previewFrame.style.height = '70vh';
+                fullscreenBtn.className = 'fas fa-expand';
+            } else {
+                previewFrame.style.height = '90vh';
+                fullscreenBtn.className = 'fas fa-compress';
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${message}
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+        
+        // Resize handle functionality
+        let isResizing = false;
+        const resizeHandle = document.getElementById('resizeHandle');
+        const previewFrame = document.getElementById('previewFrame');
+        
+        resizeHandle.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+        
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            
+            const containerRect = document.querySelector('.preview-container').getBoundingClientRect();
+            const newHeight = e.clientY - containerRect.top - 60; // Account for header
+            
+            if (newHeight > 200 && newHeight < window.innerHeight - 200) {
+                previewFrame.style.height = newHeight + 'px';
+            }
+        }
+        
+        function handleMouseUp() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('Transformation completed successfully! The preview shows your enhanced HTML with multi-language capabilities.', 'success');
+        });
+    </script>
+</body>
+</html>
