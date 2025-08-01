@@ -7,6 +7,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class HtmlTranslatorApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(HtmlTranslatorApplication.class, args);
+        System.out.println("🚀 Starting GlobalWeb Converter...");
+        System.out.println("🌍 Port: " + System.getenv("PORT"));
+        System.out.println("🔧 Profile: " + System.getProperty("spring.profiles.active"));
+        
+        SpringApplication app = new SpringApplication(HtmlTranslatorApplication.class);
+        app.run(args);
+        
+        System.out.println("✅ GlobalWeb Converter started successfully!");
     }
 }
