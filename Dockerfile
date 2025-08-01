@@ -14,9 +14,15 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # Simple startup with debugging
-CMD echo "Starting application on port ${PORT:-8080}..." && \
+CMD echo "🚀 Docker container starting..." && \
+    echo "🌍 PORT environment variable: ${PORT:-NOT_SET}" && \
+    echo "🔧 Java version: $(java -version 2>&1 | head -1)" && \
+    echo "📦 JAR file exists: $(ls -la target/html-translator-0.0.1-SNAPSHOT.jar)" && \
+    echo "🎯 Starting Spring Boot application..." && \
     java -Xmx300m -Xms150m \
     -Dserver.port=${PORT:-8080} \
+    -Dserver.address=0.0.0.0 \
     -Dspring.profiles.active=railway \
     -Djava.awt.headless=true \
+    -Dlogging.level.org.springframework.boot.web.embedded.tomcat=INFO \
     -jar target/html-translator-0.0.1-SNAPSHOT.jar
