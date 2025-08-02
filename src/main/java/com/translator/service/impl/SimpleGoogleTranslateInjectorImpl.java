@@ -14,8 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-// DISABLED - Replaced by HtmlTranslationServiceImpl for actual content translation
-// @Service  
+@Service
 public class SimpleGoogleTranslateInjectorImpl implements HtmlTranslationService {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleGoogleTranslateInjectorImpl.class);
