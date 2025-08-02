@@ -20,8 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-// DISABLED - Replaced by SimpleGoogleTranslateInjectorImpl
-// @Service
+@Service
 public class HtmlTranslationServiceImpl implements HtmlTranslationService {
 
     private static final Logger log = LoggerFactory.getLogger(HtmlTranslationServiceImpl.class);
