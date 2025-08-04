@@ -133,17 +133,16 @@ class GlobalWebConverter {
             initScript.type = 'text/javascript';
             initScript.textContent = `
                 function googleTranslateElementInit() {
-                    new google.translate.TranslateElement({
-                        pageLanguage: '${detectedLanguage}',
-                        includedLanguages: 'en,es,fr,de,it,pt,nl,ru,ja,ko,zh,ar,hi,th',
-                        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-                    }, 'google_translate_element');
+                    new google.translate.TranslateElement(
+                        {pageLanguage: ''},
+                        'google_translate_element'
+                    );
                 }
             `;
 
             const apiScript = doc.createElement('script');
             apiScript.type = 'text/javascript';
-            apiScript.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+            apiScript.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
 
             // Insert at the beginning of body
             const body = doc.body;
