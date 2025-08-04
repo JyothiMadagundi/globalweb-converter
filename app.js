@@ -228,30 +228,46 @@ class GlobalWebConverter {
     processAndPreview() {
         if (!this.validateInput()) return;
 
-        const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-        const result = this.injectGoogleTranslateWidget(this.currentHtmlContent, detectedLanguage);
+        // Show loading spinner
+        this.showLoading(true);
 
-        if (result.success) {
-            this.displayPreview(result.html);
-            this.showNotification('HTML transformation completed successfully!', 'success');
-        } else {
-            this.showNotification('Error processing HTML: ' + result.error, 'error');
-        }
+        // Add small delay for smooth UX
+        setTimeout(() => {
+            const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
+            const result = this.injectGoogleTranslateWidget(this.currentHtmlContent, detectedLanguage);
+
+            this.showLoading(false);
+
+            if (result.success) {
+                this.displayPreview(result.html, result.detectedLanguage, result.processingTime);
+                this.showNotification('HTML transformation completed successfully!', 'success');
+            } else {
+                this.showNotification('Error processing HTML: ' + result.error, 'error');
+            }
+        }, 800);
     }
 
     // Process and download HTML
     processAndDownload() {
         if (!this.validateInput()) return;
 
-        const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-        const result = this.injectGoogleTranslateWidget(this.currentHtmlContent, detectedLanguage);
+        // Show loading spinner
+        this.showLoading(true);
 
-        if (result.success) {
-            this.downloadHTML(result.html, detectedLanguage);
-            this.showNotification('File download started!', 'success');
-        } else {
-            this.showNotification('Error processing HTML: ' + result.error, 'error');
-        }
+        // Add small delay for smooth UX
+        setTimeout(() => {
+            const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
+            const result = this.injectGoogleTranslateWidget(this.currentHtmlContent, detectedLanguage);
+
+            this.showLoading(false);
+
+            if (result.success) {
+                this.downloadHTML(result.html, result.detectedLanguage);
+                this.showNotification('File download started!', 'success');
+            } else {
+                this.showNotification('Error processing HTML: ' + result.error, 'error');
+            }
+        }, 600);
     }
 
     // Validate input
@@ -264,24 +280,54 @@ class GlobalWebConverter {
     }
 
     // Display preview
-    displayPreview(transformedHTML) {
+    displayPreview(transformedHTML, detectedLanguage, processingTime) {
         const previewFrame = document.getElementById('previewFrame');
         const resultContainer = document.getElementById('resultContainer');
+        const htmlCodeDisplay = document.getElementById('htmlCodeDisplay');
+        const detectedLangStat = document.getElementById('detectedLang');
+        const processingTimeStat = document.getElementById('processingTime');
         
         // Store the transformed HTML for download
         this.transformedHTML = transformedHTML;
+
+        // Update stats
+        if (detectedLangStat) {
+            detectedLangStat.textContent = detectedLanguage.toUpperCase();
+        }
+        if (processingTimeStat) {
+            processingTimeStat.textContent = processingTime + 'ms';
+        }
+
+        // Display HTML code with syntax highlighting
+        if (htmlCodeDisplay) {
+            htmlCodeDisplay.textContent = this.formatHtml(transformedHTML);
+        }
 
         // Display in iframe
         const blob = new Blob([transformedHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         previewFrame.src = url;
 
-        // Show result container
+        // Show result container with animation
         resultContainer.style.display = 'block';
-        resultContainer.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
 
         // Clean up URL after a delay
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    // Format HTML for display
+    formatHtml(html) {
+        // Simple HTML formatting for better readability
+        return html
+            .replace(/></g, '>\n<')
+            .replace(/\n\s*\n/g, '\n')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('\n');
     }
 
     // Download HTML file
@@ -363,6 +409,34 @@ class GlobalWebConverter {
         };
         return icons[type] || 'info-circle';
     }
+
+    // Show/hide loading spinner
+    showLoading(show) {
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        if (loadingSpinner) {
+            loadingSpinner.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    // Copy HTML code to clipboard
+    copyHtmlCode() {
+        if (this.transformedHTML) {
+            navigator.clipboard.writeText(this.transformedHTML).then(() => {
+                this.showNotification('HTML code copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback method
+                const textArea = document.createElement('textarea');
+                textArea.value = this.transformedHTML;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                this.showNotification('HTML code copied to clipboard!', 'success');
+            });
+        } else {
+            this.showNotification('No HTML code to copy!', 'error');
+        }
+    }
 }
 
 // Global functions for HTML onclick handlers
@@ -382,6 +456,10 @@ function downloadTransformedHTML() {
 
 function resetForm() {
     converter.resetForm();
+}
+
+function copyHtmlCode() {
+    converter.copyHtmlCode();
 }
 
 // Initialize the application when DOM is loaded
