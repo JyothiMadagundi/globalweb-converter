@@ -123,20 +123,45 @@ class GlobalWebConverter {
             // Simple string manipulation approach for better compatibility
             let transformedHTML = htmlContent;
 
-            // Create the Google Translate widget HTML
+            // Create the Google Translate widget HTML with enhanced styling and initialization
             const translateWidget = `
-<div id="google_translate_element"></div>
+<div id="google_translate_element" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; text-align: center;"></div>
 <script type="text/javascript">
   function googleTranslateElementInit() {
-    new google.translate.TranslateElement(
-      {pageLanguage: ''},
-      'google_translate_element'
-    );
+    new google.translate.TranslateElement({
+      pageLanguage: '',
+      includedLanguages: 'en,es,fr,de,it,pt,nl,ru,ja,ko,zh-cn,ar,hi,th,tr,pl,sv,da,no,fi,el,he,cs,sk,hu,ro,bg,hr,sl,et,lv,lt,mt,ga,cy,eu,ca,gl,is,mk,sq,sr,bs,me,mn,ka,hy,az,kk,ky,uz,tk,tg,fa,ur,ps,sd',
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+      autoDisplay: false
+    }, 'google_translate_element');
+  }
+  
+  // Ensure the translation loads properly
+  if (typeof google !== 'undefined' && google.translate) {
+    googleTranslateElementInit();
+  } else {
+    // Retry initialization after a short delay
+    setTimeout(function() {
+      if (typeof google !== 'undefined' && google.translate) {
+        googleTranslateElementInit();
+      }
+    }, 1000);
   }
 </script>
-<script type="text/javascript"
-  src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
-</script>`;
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<style>
+  /* Improve Google Translate widget styling */
+  .goog-te-banner-frame { display: none !important; }
+  .goog-te-menu-value { color: #333 !important; }
+  body { top: 0px !important; }
+  #google_translate_element select { 
+    background: white; 
+    border: 1px solid #ccc; 
+    padding: 8px; 
+    border-radius: 4px;
+    font-size: 14px;
+  }
+</style>`;
 
             // Insert the widget right after the opening <body> tag
             if (transformedHTML.includes('<body>')) {
@@ -290,15 +315,43 @@ ${transformedHTML}
             console.log('HTML code displayed in code tab');
         }
 
-        // Display in iframe
+        // Display in iframe with enhanced settings for Google Translate
         if (previewFrame) {
-            const blob = new Blob([transformedHTML], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            previewFrame.src = url;
-            console.log('Preview frame updated with blob URL');
-
-            // Clean up URL after a delay
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            try {
+                // Set iframe attributes for better compatibility
+                previewFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation');
+                previewFrame.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+                
+                // Try direct document writing first (better for external scripts)
+                previewFrame.onload = () => {
+                    try {
+                        const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                        iframeDoc.open();
+                        iframeDoc.write(transformedHTML);
+                        iframeDoc.close();
+                        console.log('HTML written directly to iframe document');
+                    } catch (error) {
+                        console.log('Direct write failed, using blob URL fallback:', error);
+                        // Fallback to blob URL method
+                        const blob = new Blob([transformedHTML], { type: 'text/html; charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        previewFrame.src = url;
+                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    }
+                };
+                
+                // Set initial src to trigger onload
+                previewFrame.src = 'about:blank';
+                
+                console.log('Preview frame setup with enhanced Google Translate compatibility');
+            } catch (error) {
+                console.error('Error setting up preview frame:', error);
+                // Final fallback to simple blob URL
+                const blob = new Blob([transformedHTML], { type: 'text/html; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                previewFrame.src = url;
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+            }
         }
 
         // Show result container
