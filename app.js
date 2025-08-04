@@ -1,101 +1,75 @@
-// GlobalWeb Converter - Client-side JavaScript Application
-// Replicates Spring Boot backend functionality for GitHub Pages hosting
-
+// GlobalWeb Converter - Client-side HTML Translation Tool
 class GlobalWebConverter {
     constructor() {
         this.currentHtmlContent = '';
-        this.detectedLanguage = 'auto';
+        this.transformedHTML = '';
         this.initializeEventListeners();
-        this.initializeLanguagePatterns();
-    }
-
-    // Initialize language detection patterns (from Java backend)
-    initializeLanguagePatterns() {
-        this.languagePatterns = {
-            'zh': /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g, // Chinese
-            'ja': /[\u3040-\u309F\u30A0-\u30FF]/g, // Japanese
-            'ko': /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/g, // Korean
-            'ar': /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, // Arabic
-            'th': /[\u0E00-\u0E7F]/g, // Thai
-            'hi': /[\u0900-\u097F]/g, // Hindi
-            'he': /[\u0590-\u05FF]/g, // Hebrew
-            'ru': /[\u0400-\u04FF]/g, // Russian/Cyrillic
-            'el': /[\u0370-\u03FF]/g, // Greek
-            'tr': /[çÇğĞıİöÖşŞüÜ]/g, // Turkish
-            'vi': /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồố]/g, // Vietnamese
-            'fr': /[àâäéèêëïîôùûüÿç]/g, // French
-            'de': /[äöüÄÖÜß]/g, // German
-            'es': /[ñáéíóúü¿¡]/g, // Spanish
-            'pt': /[ãõáéíóúâêîôûàèç]/g, // Portuguese
-            'it': /[àèéìíîòóù]/g // Italian
-        };
     }
 
     // Initialize event listeners
     initializeEventListeners() {
         const fileInput = document.getElementById('fileInput');
-        const fileUploadZone = document.getElementById('fileUploadZone');
         const htmlContent = document.getElementById('htmlContent');
+        const fileUploadZone = document.getElementById('fileUploadZone');
 
         // File input change
-        fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+
+        // Text area change
+        if (htmlContent) {
+            htmlContent.addEventListener('input', (e) => {
+                this.currentHtmlContent = e.target.value;
+            });
+        }
 
         // Drag and drop
-        fileUploadZone.addEventListener('dragover', (e) => this.handleDragOver(e));
-        fileUploadZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-        fileUploadZone.addEventListener('drop', (e) => this.handleFileDrop(e));
+        if (fileUploadZone) {
+            fileUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadZone.classList.add('dragover');
+            });
 
-        // Text area input
-        htmlContent.addEventListener('input', (e) => this.handleTextInput(e));
+            fileUploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                fileUploadZone.classList.remove('dragover');
+            });
+
+            fileUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleFile(files[0]);
+                }
+            });
+        }
     }
 
     // Handle file selection
     handleFileSelect(event) {
         const file = event.target.files[0];
         if (file) {
-            this.processFile(file);
+            this.handleFile(file);
         }
     }
 
-    // Handle drag over
-    handleDragOver(event) {
-        event.preventDefault();
-        event.currentTarget.classList.add('dragover');
-    }
-
-    // Handle drag leave
-    handleDragLeave(event) {
-        event.currentTarget.classList.remove('dragover');
-    }
-
-    // Handle file drop
-    handleFileDrop(event) {
-        event.preventDefault();
-        event.currentTarget.classList.remove('dragover');
-        
-        const files = event.dataTransfer.files;
-        if (files.length > 0) {
-            this.processFile(files[0]);
-        }
-    }
-
-    // Handle text input
-    handleTextInput(event) {
-        this.currentHtmlContent = event.target.value;
-    }
-
-    // Process uploaded file
-    processFile(file) {
-        if (!this.isValidHtmlFile(file)) {
-            this.showNotification('Please select a valid HTML file (.html or .htm)', 'error');
+    // Handle file processing
+    handleFile(file) {
+        // Validate file type
+        if (!file.name.toLowerCase().match(/\.(html|htm)$/)) {
+            this.showNotification('Please select an HTML file (.html or .htm)', 'error');
             return;
         }
 
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
             this.showNotification('File size must be less than 10MB', 'error');
             return;
         }
 
+        // Read file
         const reader = new FileReader();
         reader.onload = (e) => {
             this.currentHtmlContent = e.target.result;
@@ -108,108 +82,86 @@ class GlobalWebConverter {
         reader.readAsText(file);
     }
 
-    // Validate HTML file
-    isValidHtmlFile(file) {
-        const validExtensions = ['.html', '.htm'];
-        const fileName = file.name.toLowerCase();
-        return validExtensions.some(ext => fileName.endsWith(ext));
-    }
-
     // Detect language from HTML content
     detectLanguageFromContent(htmlContent) {
-        // Extract text content from HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = htmlContent;
-        const textContent = tempDiv.textContent || tempDiv.innerText || '';
-
-        if (!textContent.trim()) {
-            return 'auto';
-        }
-
-        const scores = {};
+        // Remove HTML tags for language detection
+        const textContent = htmlContent.replace(/<[^>]*>/g, ' ').trim();
         
-        // Score each language based on character matches
-        for (const [lang, pattern] of Object.entries(this.languagePatterns)) {
-            const matches = textContent.match(pattern);
-            if (matches) {
-                scores[lang] = matches.length;
+        // Language detection patterns
+        const patterns = {
+            'zh': /[\u4e00-\u9fff]/,  // Chinese
+            'ja': /[\u3040-\u309f\u30a0-\u30ff]/,  // Japanese
+            'ko': /[\uac00-\ud7af]/,  // Korean
+            'ar': /[\u0600-\u06ff]/,  // Arabic
+            'hi': /[\u0900-\u097f]/,  // Hindi
+            'th': /[\u0e00-\u0e7f]/,  // Thai
+            'ru': /[\u0400-\u04ff]/,  // Russian
+            'he': /[\u0590-\u05ff]/,  // Hebrew
+            'de': /\b(der|die|das|und|ist|ein|eine|mit|für)\b/i,  // German
+            'fr': /\b(le|la|les|de|du|des|et|un|une|est|avec)\b/i,  // French
+            'es': /\b(el|la|los|las|de|del|y|un|una|es|con)\b/i,  // Spanish
+            'it': /\b(il|la|lo|gli|le|di|del|e|un|una|è|con)\b/i,  // Italian
+            'pt': /\b(o|a|os|as|de|do|da|e|um|uma|é|com)\b/i,  // Portuguese
+            'nl': /\b(de|het|een|en|van|is|met|voor|op)\b/i  // Dutch
+        };
+
+        // Check for language patterns
+        for (const [lang, pattern] of Object.entries(patterns)) {
+            if (pattern.test(textContent)) {
+                return lang;
             }
         }
 
-        // Handle Chinese vs Japanese distinction
-        if (scores.zh && scores.ja) {
-            // If we have both Chinese and Japanese characters, prefer the one with more matches
-            // Additional heuristic: Japanese often has more hiragana/katakana mixed with kanji
-            const hiraganaKatakana = /[\u3040-\u309F\u30A0-\u30FF]/g;
-            const hiraganaMatches = textContent.match(hiraganaKatakana);
-            
-            if (hiraganaMatches && hiraganaMatches.length > scores.zh * 0.1) {
-                scores.ja += hiraganaMatches.length * 2; // Boost Japanese score
-            }
-        }
-
-        // Find the language with the highest score
-        let detectedLang = 'auto';
-        let maxScore = 0;
-
-        for (const [lang, score] of Object.entries(scores)) {
-            if (score > maxScore) {
-                maxScore = score;
-                detectedLang = lang;
-            }
-        }
-
-        console.log('Language detection scores:', scores);
-        console.log('Detected language:', detectedLang);
-
-        return detectedLang;
+        return 'auto'; // Default to auto-detect
     }
 
-    // Inject Google Translate widget into HTML
+    // Inject Google Translate Widget
     injectGoogleTranslateWidget(htmlContent, detectedLanguage) {
         const startTime = Date.now();
         
         try {
-            // Create a DOM parser
+            // Parse HTML
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
 
-            // Create the Google Translate widget HTML
-            const googleTranslateWidget = `
-<div id="google_translate_element" style="margin: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; text-align: center;"></div>
-<script type="text/javascript">
-  function googleTranslateElementInit() {
-    new google.translate.TranslateElement(
-      {pageLanguage: '${detectedLanguage}'},
-      'google_translate_element'
-    );
-  }
-</script>
-<script type="text/javascript"
-  src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
-</script>`;
+            // Create Google Translate elements
+            const translateDiv = doc.createElement('div');
+            translateDiv.id = 'google_translate_element';
+            translateDiv.style.cssText = 'margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;';
 
-            // Find the body element and inject the widget at the beginning
+            const initScript = doc.createElement('script');
+            initScript.type = 'text/javascript';
+            initScript.textContent = `
+                function googleTranslateElementInit() {
+                    new google.translate.TranslateElement({
+                        pageLanguage: '${detectedLanguage}',
+                        includedLanguages: 'en,es,fr,de,it,pt,nl,ru,ja,ko,zh,ar,hi,th',
+                        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+                    }, 'google_translate_element');
+                }
+            `;
+
+            const apiScript = doc.createElement('script');
+            apiScript.type = 'text/javascript';
+            apiScript.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+
+            // Insert at the beginning of body
             const body = doc.body;
             if (body) {
-                const widgetDiv = document.createElement('div');
-                widgetDiv.innerHTML = googleTranslateWidget;
-                
-                // Insert at the beginning of body
-                body.insertBefore(widgetDiv, body.firstChild);
+                body.insertBefore(translateDiv, body.firstChild);
+                body.appendChild(initScript);
+                body.appendChild(apiScript);
             } else {
-                // If no body tag, create one and add the widget
-                const newBody = doc.createElement('body');
-                newBody.innerHTML = googleTranslateWidget + (doc.documentElement.innerHTML || htmlContent);
-                doc.documentElement.appendChild(newBody);
+                throw new Error('No body tag found in HTML');
             }
 
+            // Convert back to HTML string
+            const transformedHTML = new XMLSerializer().serializeToString(doc);
             const processingTime = Date.now() - startTime;
-            console.log(`Google Translate widget injected successfully in ${processingTime}ms`);
 
             return {
                 success: true,
-                html: doc.documentElement.outerHTML,
+                html: transformedHTML,
                 detectedLanguage: detectedLanguage,
                 processingTime: processingTime
             };
@@ -218,7 +170,6 @@ class GlobalWebConverter {
             console.error('Error injecting Google Translate widget:', error);
             return {
                 success: false,
-                html: htmlContent,
                 error: error.message
             };
         }
@@ -226,15 +177,25 @@ class GlobalWebConverter {
 
     // Process and preview HTML
     processAndPreview() {
-        if (!this.validateInput()) return;
+        console.log('processAndPreview called');
+        
+        if (!this.validateInput()) {
+            console.log('Input validation failed');
+            return;
+        }
 
+        console.log('Starting processing...');
+        
         // Show loading spinner
         this.showLoading(true);
 
         // Add small delay for smooth UX
         setTimeout(() => {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
+            console.log('Detected language:', detectedLanguage);
+            
             const result = this.injectGoogleTranslateWidget(this.currentHtmlContent, detectedLanguage);
+            console.log('Injection result:', result);
 
             this.showLoading(false);
 
@@ -244,12 +205,16 @@ class GlobalWebConverter {
             } else {
                 this.showNotification('Error processing HTML: ' + result.error, 'error');
             }
-        }, 800);
+        }, 500);
     }
 
     // Process and download HTML
     processAndDownload() {
-        if (!this.validateInput()) return;
+        console.log('processAndDownload called');
+        
+        if (!this.validateInput()) {
+            return;
+        }
 
         // Show loading spinner
         this.showLoading(true);
@@ -267,7 +232,7 @@ class GlobalWebConverter {
             } else {
                 this.showNotification('Error processing HTML: ' + result.error, 'error');
             }
-        }, 600);
+        }, 300);
     }
 
     // Validate input
@@ -276,11 +241,27 @@ class GlobalWebConverter {
             this.showNotification('Please provide HTML content either by file upload or text input', 'error');
             return false;
         }
+        
+        // Basic HTML validation
+        if (!this.currentHtmlContent.toLowerCase().includes('<html') && 
+            !this.currentHtmlContent.toLowerCase().includes('<body') &&
+            !this.currentHtmlContent.toLowerCase().includes('<div') &&
+            !this.currentHtmlContent.toLowerCase().includes('<p')) {
+            this.showNotification('Please provide valid HTML content', 'error');
+            return false;
+        }
+        
         return true;
     }
 
     // Display preview
     displayPreview(transformedHTML, detectedLanguage, processingTime) {
+        console.log('displayPreview called with params:', {
+            htmlLength: transformedHTML ? transformedHTML.length : 0,
+            detectedLanguage,
+            processingTime
+        });
+
         const previewFrame = document.getElementById('previewFrame');
         const resultContainer = document.getElementById('resultContainer');
         const htmlCodeDisplay = document.getElementById('htmlCodeDisplay');
@@ -298,28 +279,37 @@ class GlobalWebConverter {
             processingTimeStat.textContent = processingTime + 'ms';
         }
 
-        // Display HTML code with syntax highlighting
+        // Display HTML code
         if (htmlCodeDisplay) {
             htmlCodeDisplay.textContent = this.formatHtml(transformedHTML);
+            console.log('HTML code displayed in code tab');
         }
 
         // Display in iframe
-        const blob = new Blob([transformedHTML], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        previewFrame.src = url;
+        if (previewFrame) {
+            const blob = new Blob([transformedHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            previewFrame.src = url;
+            console.log('Preview frame updated with blob URL');
 
-        // Show result container with animation
-        resultContainer.style.display = 'block';
-        setTimeout(() => {
-            resultContainer.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+            // Clean up URL after a delay
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
 
-        // Clean up URL after a delay
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        // Show result container
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+            setTimeout(() => {
+                resultContainer.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+            console.log('Result container shown');
+        }
     }
 
     // Format HTML for display
     formatHtml(html) {
+        if (!html) return '';
+        
         // Simple HTML formatting for better readability
         return html
             .replace(/></g, '>\n<')
@@ -335,52 +325,54 @@ class GlobalWebConverter {
         const filename = this.generateFilename(detectedLanguage);
         const blob = new Blob([htmlContent], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
         // Clean up
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+
+    // Download transformed HTML (from preview)
+    downloadTransformedHTML() {
+        if (this.transformedHTML) {
+            const detectedLanguage = this.detectLanguageFromContent(this.transformedHTML);
+            this.downloadHTML(this.transformedHTML, detectedLanguage);
+            this.showNotification('File download started!', 'success');
+        } else {
+            this.showNotification('No transformed HTML available. Please process a file first.', 'error');
+        }
     }
 
     // Generate filename
     generateFilename(detectedLanguage) {
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-        return `translated-${detectedLanguage}-to-multilang-${timestamp}.html`;
-    }
-
-    // Download transformed HTML (called from button)
-    downloadTransformedHTML() {
-        if (this.transformedHTML) {
-            const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-            this.downloadHTML(this.transformedHTML, detectedLanguage);
-            this.showNotification('File downloaded successfully!', 'success');
-        } else {
-            this.showNotification('No transformed HTML available', 'error');
-        }
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+        return `globalweb-translated-${detectedLanguage}-${timestamp}.html`;
     }
 
     // Reset form
     resetForm() {
         this.currentHtmlContent = '';
         this.transformedHTML = '';
+        
         document.getElementById('htmlContent').value = '';
         document.getElementById('fileInput').value = '';
         document.getElementById('resultContainer').style.display = 'none';
-        this.showNotification('Form reset successfully', 'info');
+        
+        this.showNotification('Form reset successfully!', 'info');
     }
 
     // Show notification
     showNotification(message, type = 'info') {
         // Remove existing notifications
         const existingNotifications = document.querySelectorAll('.notification');
-        existingNotifications.forEach(notification => notification.remove());
+        existingNotifications.forEach(n => n.remove());
 
-        // Create new notification
+        // Create notification
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -388,15 +380,18 @@ class GlobalWebConverter {
             ${message}
         `;
 
+        // Add to page
         document.body.appendChild(notification);
 
-        // Show notification
+        // Show with animation
         setTimeout(() => notification.classList.add('show'), 100);
 
-        // Hide notification after 4 seconds
+        // Auto-remove after 4 seconds
         setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }
         }, 4000);
     }
 
@@ -443,27 +438,53 @@ class GlobalWebConverter {
 let converter;
 
 function processAndPreview() {
-    converter.processAndPreview();
+    console.log('Global processAndPreview called');
+    if (converter) {
+        converter.processAndPreview();
+    } else {
+        console.error('Converter not initialized');
+    }
 }
 
 function processAndDownload() {
-    converter.processAndDownload();
+    console.log('Global processAndDownload called');
+    if (converter) {
+        converter.processAndDownload();
+    } else {
+        console.error('Converter not initialized');
+    }
 }
 
 function downloadTransformedHTML() {
-    converter.downloadTransformedHTML();
+    console.log('Global downloadTransformedHTML called');
+    if (converter) {
+        converter.downloadTransformedHTML();
+    } else {
+        console.error('Converter not initialized');
+    }
 }
 
 function resetForm() {
-    converter.resetForm();
+    console.log('Global resetForm called');
+    if (converter) {
+        converter.resetForm();
+    } else {
+        console.error('Converter not initialized');
+    }
 }
 
 function copyHtmlCode() {
-    converter.copyHtmlCode();
+    console.log('Global copyHtmlCode called');
+    if (converter) {
+        converter.copyHtmlCode();
+    } else {
+        console.error('Converter not initialized');
+    }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing GlobalWeb Converter...');
     converter = new GlobalWebConverter();
     console.log('GlobalWeb Converter initialized successfully!');
 });
