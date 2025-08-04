@@ -123,43 +123,81 @@ class GlobalWebConverter {
             // Simple string manipulation approach for better compatibility
             let transformedHTML = htmlContent;
 
-            // Create the Google Translate widget HTML with enhanced styling and initialization
+            // Create the Google Translate widget HTML with auto-translate to English
             const translateWidget = `
 <div id="google_translate_element" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; text-align: center;"></div>
 <script type="text/javascript">
   function googleTranslateElementInit() {
     new google.translate.TranslateElement({
-      pageLanguage: '',
+      pageLanguage: 'auto',
       includedLanguages: 'en,es,fr,de,it,pt,nl,ru,ja,ko,zh-cn,ar,hi,th,tr,pl,sv,da,no,fi,el,he,cs,sk,hu,ro,bg,hr,sl,et,lv,lt,mt,ga,cy,eu,ca,gl,is,mk,sq,sr,bs,me,mn,ka,hy,az,kk,ky,uz,tk,tg,fa,ur,ps,sd',
       layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
       autoDisplay: false
     }, 'google_translate_element');
+    
+    // Auto-translate to English after widget loads
+    setTimeout(function() {
+      var selectElement = document.querySelector('#google_translate_element select');
+      if (selectElement) {
+        // Set to English by default
+        selectElement.value = 'en';
+        selectElement.dispatchEvent(new Event('change'));
+        console.log('Auto-translated to English');
+      }
+    }, 2000);
   }
   
-  // Ensure the translation loads properly
-  if (typeof google !== 'undefined' && google.translate) {
-    googleTranslateElementInit();
-  } else {
-    // Retry initialization after a short delay
-    setTimeout(function() {
-      if (typeof google !== 'undefined' && google.translate) {
-        googleTranslateElementInit();
-      }
-    }, 1000);
+  // Ensure the translation loads properly with retry
+  function initializeTranslation() {
+    if (typeof google !== 'undefined' && google.translate) {
+      googleTranslateElementInit();
+    } else {
+      setTimeout(initializeTranslation, 500);
+    }
   }
+  
+  // Start initialization
+  initializeTranslation();
+  
+  // Additional auto-translate trigger on page load
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      var selectElement = document.querySelector('#google_translate_element select');
+      if (selectElement && selectElement.value !== 'en') {
+        selectElement.value = 'en';
+        selectElement.dispatchEvent(new Event('change'));
+      }
+    }, 3000);
+  });
 </script>
 <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 <style>
-  /* Improve Google Translate widget styling */
+  /* Professional Google Translate widget styling */
   .goog-te-banner-frame { display: none !important; }
-  .goog-te-menu-value { color: #333 !important; }
+  .goog-te-menu-value { 
+    color: #2c3e50 !important; 
+    font-family: 'Times New Roman', Times, serif !important;
+    font-weight: 600 !important;
+  }
   body { top: 0px !important; }
   #google_translate_element select { 
     background: white; 
-    border: 1px solid #ccc; 
-    padding: 8px; 
-    border-radius: 4px;
+    border: 2px solid #3498db; 
+    padding: 10px 15px; 
+    border-radius: 6px;
     font-size: 14px;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 200px;
+  }
+  #google_translate_element select:focus {
+    outline: none;
+    border-color: #2980b9;
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+  }
+  .goog-te-gadget { 
+    font-family: 'Times New Roman', Times, serif !important; 
   }
 </style>`;
 

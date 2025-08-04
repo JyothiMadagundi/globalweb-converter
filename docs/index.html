@@ -31,39 +31,67 @@
         }
 
         .header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, #1a252f 0%, var(--primary-color) 50%, var(--secondary-color) 100%);
             color: var(--white);
-            padding: 60px 0;
-            margin-bottom: 40px;
+            padding: 80px 0;
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
         }
 
         .header h1 {
-            font-size: 3rem;
+            font-size: 3.5rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-align: center;
             font-family: 'Times New Roman', Times, Georgia, serif;
+            position: relative;
+            z-index: 2;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: -1px;
         }
 
         .header p {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             text-align: center;
-            opacity: 0.9;
-            max-width: 800px;
+            opacity: 0.95;
+            max-width: 900px;
             margin: 0 auto;
             font-family: 'Times New Roman', Times, Georgia, serif;
+            position: relative;
+            z-index: 2;
+            font-weight: 400;
+            line-height: 1.7;
         }
 
-        .rotating-logo {
+        .professional-logo {
             display: inline-block;
-            animation: rotate 3s linear infinite;
-            color: #f39c12;
+            color: #2980b9;
             margin-right: 15px;
+            animation: subtle-glow 2s ease-in-out infinite alternate;
+            text-shadow: 0 0 10px rgba(41, 128, 185, 0.3);
         }
 
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        @keyframes subtle-glow {
+            from { 
+                color: #2980b9;
+                text-shadow: 0 0 10px rgba(41, 128, 185, 0.3);
+            }
+            to { 
+                color: #3498db;
+                text-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+            }
         }
 
         .main-container {
@@ -73,10 +101,23 @@
         }
 
         .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
+            border: 1px solid #e1e8ed;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 40px;
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color) 0%, var(--success-color) 100%);
         }
 
         .card-header {
@@ -408,7 +449,7 @@
     <div class="header">
         <div class="container">
             <h1>
-                <i class="fas fa-cog rotating-logo"></i>
+                <i class="fas fa-file-contract professional-logo"></i>
                 GlobalWeb Converter
             </h1>
             <p>
@@ -547,14 +588,16 @@
                             <i class="fas fa-rocket me-2"></i>What's Next?
                         </h6>
                         <p>
-                            <strong>Your HTML file is now enhanced with multi-language translation capabilities!</strong> 
-                            The Google Translate widget is now integrated at the top of your page.<br><br>
-                            <strong>📋 To test translation functionality:</strong><br>
+                            <strong>Your HTML file is now enhanced with professional multi-language translation capabilities!</strong> 
+                            The Google Translate widget is integrated at the top and will <strong>automatically translate to English by default</strong>.<br><br>
+                            <strong>📋 To test the auto-translation functionality:</strong><br>
                             1. Download the enhanced HTML file using the button above<br>
                             2. Open the downloaded file in your web browser (Chrome, Firefox, Safari, etc.)<br>
-                            3. Use the translation dropdown that appears at the top<br>
-                            4. Select any language to see your content translated instantly<br><br>
-                            <em>Note: Translation works best in downloaded files opened directly in browsers, as iframe previews may have security restrictions.</em>
+                            3. Content will automatically translate to English when the page loads<br>
+                            4. Use the dropdown to select other languages (Spanish, French, German, etc.)<br>
+                            5. Content translates instantly to your selected language<br><br>
+                            <strong>✨ Professional Features:</strong> Auto-English translation, classic typography, professional styling, and comprehensive language support.<br><br>
+                            <em>Note: Full translation functionality works in downloaded files opened directly in browsers.</em>
                         </p>
                     </div>
                 </div>
