@@ -120,42 +120,48 @@ class GlobalWebConverter {
         const startTime = Date.now();
         
         try {
-            // Parse HTML
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, 'text/html');
+            // Simple string manipulation approach for better compatibility
+            let transformedHTML = htmlContent;
 
-            // Create Google Translate elements
-            const translateDiv = doc.createElement('div');
-            translateDiv.id = 'google_translate_element';
-            translateDiv.style.cssText = 'margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;';
+            // Create the Google Translate widget HTML
+            const translateWidget = `
+<div id="google_translate_element"></div>
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement(
+      {pageLanguage: ''},
+      'google_translate_element'
+    );
+  }
+</script>
+<script type="text/javascript"
+  src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
+</script>`;
 
-            const initScript = doc.createElement('script');
-            initScript.type = 'text/javascript';
-            initScript.textContent = `
-                function googleTranslateElementInit() {
-                    new google.translate.TranslateElement(
-                        {pageLanguage: ''},
-                        'google_translate_element'
-                    );
+            // Insert the widget right after the opening <body> tag
+            if (transformedHTML.includes('<body>')) {
+                transformedHTML = transformedHTML.replace('<body>', '<body>\n' + translateWidget + '\n');
+            } else if (transformedHTML.includes('<body ')) {
+                // Handle body tag with attributes
+                const bodyMatch = transformedHTML.match(/<body[^>]*>/);
+                if (bodyMatch) {
+                    transformedHTML = transformedHTML.replace(bodyMatch[0], bodyMatch[0] + '\n' + translateWidget + '\n');
                 }
-            `;
-
-            const apiScript = doc.createElement('script');
-            apiScript.type = 'text/javascript';
-            apiScript.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-
-            // Insert at the beginning of body
-            const body = doc.body;
-            if (body) {
-                body.insertBefore(translateDiv, body.firstChild);
-                body.appendChild(initScript);
-                body.appendChild(apiScript);
             } else {
-                throw new Error('No body tag found in HTML');
+                // If no body tag, wrap content
+                transformedHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Translated Page</title>
+</head>
+<body>
+${translateWidget}
+${transformedHTML}
+</body>
+</html>`;
             }
 
-            // Convert back to HTML string
-            const transformedHTML = new XMLSerializer().serializeToString(doc);
             const processingTime = Date.now() - startTime;
 
             return {
