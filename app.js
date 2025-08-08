@@ -456,23 +456,38 @@ class GlobalWebConverter {
         }, 300);
     }
 
-    // Validate input
+    // Validate and prepare input
     validateInput() {
-        if (!this.currentHtmlContent || this.currentHtmlContent.trim() === '') {
-            this.showNotification('Please provide HTML content either by file upload or text input', 'error');
+        let content = this.currentHtmlContent ? this.currentHtmlContent.trim() : '';
+        
+        if (!content) {
+            this.showNotification('Please provide content either by file upload or text input', 'error');
             return false;
         }
         
-        // Basic HTML validation
-        if (!this.currentHtmlContent.toLowerCase().includes('<html') && 
-            !this.currentHtmlContent.toLowerCase().includes('<body') &&
-            !this.currentHtmlContent.toLowerCase().includes('<div') &&
-            !this.currentHtmlContent.toLowerCase().includes('<p')) {
-            this.showNotification('Please provide valid HTML content', 'error');
-            return false;
+        // Auto-wrap plain text in HTML tags
+        if (!this.isHtmlContent(content)) {
+            // It's plain text, wrap it in HTML
+            content = `<html>\n<head>\n<meta charset="UTF-8">\n<title>Translated Content</title>\n</head>\n<body>\n<p>${content}</p>\n</body>\n</html>`;
+            this.currentHtmlContent = content;
+            
+            // Update the textarea to show the wrapped HTML (optional - for user to see)
+            const textarea = document.getElementById('htmlContent');
+            if (textarea) {
+                textarea.value = content;
+            }
+            
+            console.log('Plain text detected, wrapped in HTML:', content);
         }
         
         return true;
+    }
+    
+    // Check if content is HTML or plain text
+    isHtmlContent(content) {
+        // Simple check for HTML tags
+        const htmlTagPattern = /<[^>]+>/;
+        return htmlTagPattern.test(content);
     }
 
     // Display preview
