@@ -17,8 +17,11 @@ class GlobalWebConverter {
             fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
 
-        // Text area change
+        // Text area change and initial content
         if (htmlContent) {
+            // Set initial content from textarea
+            this.currentHtmlContent = htmlContent.value;
+            
             htmlContent.addEventListener('input', (e) => {
                 this.currentHtmlContent = e.target.value;
             });

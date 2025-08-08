@@ -77,12 +77,12 @@
 
         .professional-logo {
             display: inline-block;
-            color: #27ae60;
+            color: #3498db;
             margin-right: 15px;
             font-size: 1.3em;
             animation: globe-rotate 6s linear infinite, color-shift 4s ease-in-out infinite alternate;
-            text-shadow: 0 0 15px rgba(39, 174, 96, 0.4);
-            filter: drop-shadow(0 2px 4px rgba(39, 174, 96, 0.3));
+            text-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+            filter: drop-shadow(0 2px 4px rgba(52, 152, 219, 0.3));
         }
 
         @keyframes globe-rotate {
@@ -96,12 +96,12 @@
 
         @keyframes color-shift {
             from { 
-                color: #27ae60;
-                text-shadow: 0 0 15px rgba(39, 174, 96, 0.4);
+                color: #3498db;
+                text-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
             }
             to { 
-                color: #2ecc71;
-                text-shadow: 0 0 25px rgba(46, 204, 113, 0.6);
+                color: #5dade2;
+                text-shadow: 0 0 25px rgba(93, 173, 226, 0.6);
             }
         }
 
@@ -498,7 +498,15 @@
                     <label for="htmlContent" class="form-label">
                         <i class="fas fa-code me-2"></i>Paste HTML Content:
                     </label>
-                    <textarea id="htmlContent" class="form-control" rows="8" placeholder="Paste your HTML content here..."></textarea>
+                    <textarea id="htmlContent" class="form-control" rows="8" placeholder="Paste your content here to translate..."><html>
+<head>
+    <title>My Page</title>
+</head>
+<body>
+    <h1>Your content here</h1>
+    <p>Paste your foreign language sentences or content between these HTML tags to translate.</p>
+</body>
+</html></textarea>
                 </div>
 
                 <!-- Loading Spinner -->
