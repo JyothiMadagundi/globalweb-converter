@@ -422,7 +422,8 @@ class GlobalWebConverter {
 
             if (result.success) {
                 this.displayPreview(result.html, result.detectedLanguage, result.processingTime);
-                this.showNotification('Translation completed successfully with real translation API!', 'success');
+                // Show success doll popup instead of notification
+                setTimeout(() => this.showSuccessDoll(), 500);
             } else {
                 this.showNotification('Error processing HTML: ' + result.error, 'error');
             }
@@ -449,7 +450,8 @@ class GlobalWebConverter {
 
             if (result.success) {
                 this.downloadHTML(result.html, result.detectedLanguage);
-                this.showNotification('File download started!', 'success');
+                // Show success doll popup instead of notification
+                setTimeout(() => this.showSuccessDoll(), 300);
             } else {
                 this.showNotification('Error processing HTML: ' + result.error, 'error');
             }
@@ -682,6 +684,30 @@ class GlobalWebConverter {
             info: 'info-circle'
         };
         return icons[type] || 'info-circle';
+    }
+
+    // Show success doll popup
+    showSuccessDoll() {
+        const overlay = document.getElementById('successOverlay');
+        const doll = document.getElementById('successDoll');
+        
+        if (overlay && doll) {
+            // Show overlay and doll
+            overlay.classList.add('show');
+            doll.classList.add('show');
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                overlay.classList.remove('show');
+                doll.classList.remove('show');
+            }, 3000);
+            
+            // Hide on click
+            overlay.addEventListener('click', () => {
+                overlay.classList.remove('show');
+                doll.classList.remove('show');
+            });
+        }
     }
 
     // Show/hide loading spinner
