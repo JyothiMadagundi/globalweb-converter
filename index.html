@@ -531,33 +531,11 @@
             backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.15), 
-                0 0 30px rgba(108, 117, 125, 0.2);
-            border-color: rgba(108, 117, 125, 0.4);
         }
 
 
 
-        @keyframes card-entrance {
-            0% {
-                opacity: 0;
-                transform: translateY(50px) rotateX(-10deg);
-            }
-            50% {
-                opacity: 0.7;
-                transform: translateY(-10px) rotateX(5deg);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) rotateX(0deg);
-            }
-        }
+
 
         /* Card Content Styling */
         .card-body h5 {
