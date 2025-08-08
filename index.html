@@ -795,9 +795,9 @@
             z-index: 1000;
             background: linear-gradient(145deg, #f8f9fa, #e9ecef);
             border: 3px solid #6c757d;
-            border-radius: 50%;
-            width: 120px;
-            height: 120px;
+            border-radius: 20px;
+            width: 140px;
+            height: 160px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -805,6 +805,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             opacity: 0;
             transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            padding: 10px;
         }
 
         .success-doll.show {
@@ -813,10 +814,103 @@
             animation: doll-bounce 0.8s ease-out;
         }
 
-        .doll-face {
-            font-size: 3rem;
-            margin-bottom: 5px;
-            filter: grayscale(20%) brightness(1.1);
+        .custom-doll {
+            width: 60px;
+            height: 80px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        /* Doll Head */
+        .doll-head {
+            width: 35px;
+            height: 35px;
+            background: #fdbcb4;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto 5px;
+            border: 2px solid #f4a6a0;
+        }
+
+        .doll-hair {
+            width: 40px;
+            height: 25px;
+            background: #8B4513;
+            border-radius: 20px 20px 5px 5px;
+            position: absolute;
+            top: -8px;
+            left: -2.5px;
+            z-index: -1;
+        }
+
+        .doll-face-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .doll-eyes {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .eye {
+            width: 4px;
+            height: 4px;
+            background: #333;
+            border-radius: 50%;
+        }
+
+        .doll-mouth {
+            width: 6px;
+            height: 3px;
+            background: #ff6b6b;
+            border-radius: 0 0 6px 6px;
+            margin: 0 auto;
+        }
+
+        /* Doll Body */
+        .doll-body {
+            position: relative;
+            width: 100%;
+            height: 40px;
+        }
+
+        .doll-dress {
+            width: 30px;
+            height: 35px;
+            background: linear-gradient(145deg, #ff9ff3, #f368e0);
+            border-radius: 0 0 15px 15px;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #e056d1;
+        }
+
+        .doll-arms {
+            position: absolute;
+            top: 5px;
+            width: 100%;
+        }
+
+        .arm {
+            width: 12px;
+            height: 20px;
+            background: #fdbcb4;
+            border-radius: 6px;
+            border: 1px solid #f4a6a0;
+            position: absolute;
+        }
+
+        .left-arm {
+            left: 8px;
+            transform: rotate(-20deg);
+        }
+
+        .right-arm {
+            right: 8px;
+            transform: rotate(20deg);
         }
 
         .doll-message {
@@ -825,6 +919,7 @@
             color: #495057;
             text-align: center;
             font-family: 'Times New Roman', serif;
+            margin-top: 5px;
         }
 
         @keyframes doll-bounce {
@@ -901,7 +996,27 @@
     <!-- Success Doll Popup -->
     <div class="success-overlay" id="successOverlay"></div>
     <div class="success-doll" id="successDoll">
-        <div class="doll-face">🎎</div>
+        <div class="custom-doll">
+            <!-- Doll Head -->
+            <div class="doll-head">
+                <div class="doll-hair"></div>
+                <div class="doll-face-area">
+                    <div class="doll-eyes">
+                        <div class="eye left-eye"></div>
+                        <div class="eye right-eye"></div>
+                    </div>
+                    <div class="doll-mouth"></div>
+                </div>
+            </div>
+            <!-- Doll Body -->
+            <div class="doll-body">
+                <div class="doll-dress"></div>
+                <div class="doll-arms">
+                    <div class="arm left-arm"></div>
+                    <div class="arm right-arm"></div>
+                </div>
+            </div>
+        </div>
         <div class="doll-message">Translation<br>Complete!</div>
     </div>
 
