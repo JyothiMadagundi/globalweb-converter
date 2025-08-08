@@ -77,29 +77,23 @@
 
         .professional-logo {
             display: inline-block;
-            color: #2980b9;
+            color: #2c3e50;
             margin-right: 15px;
-            animation: globe-spin 4s linear infinite, color-pulse 3s ease-in-out infinite alternate;
-            text-shadow: 0 0 10px rgba(41, 128, 185, 0.4);
+            font-size: 1.1em;
+            animation: professional-pulse 2.5s ease-in-out infinite alternate;
+            text-shadow: 0 2px 4px rgba(44, 62, 80, 0.2);
         }
 
-        @keyframes globe-spin {
+        @keyframes professional-pulse {
             from { 
-                transform: rotate(0deg);
+                color: #2c3e50;
+                text-shadow: 0 2px 4px rgba(44, 62, 80, 0.2);
+                transform: scale(1);
             }
             to { 
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes color-pulse {
-            from { 
-                color: #2980b9;
-                text-shadow: 0 0 10px rgba(41, 128, 185, 0.4);
-            }
-            to { 
-                color: #3498db;
-                text-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+                color: #34495e;
+                text-shadow: 0 3px 6px rgba(52, 73, 94, 0.3);
+                transform: scale(1.05);
             }
         }
 
@@ -458,7 +452,7 @@
     <div class="header">
         <div class="container">
             <h1>
-                <i class="fas fa-globe professional-logo"></i>
+                <i class="fas fa-language professional-logo"></i>
                 GlobalWeb Converter
             </h1>
             <p>
