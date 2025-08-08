@@ -79,18 +79,27 @@
             display: inline-block;
             color: #2980b9;
             margin-right: 15px;
-            animation: subtle-glow 2s ease-in-out infinite alternate;
-            text-shadow: 0 0 10px rgba(41, 128, 185, 0.3);
+            animation: globe-spin 4s linear infinite, color-pulse 3s ease-in-out infinite alternate;
+            text-shadow: 0 0 10px rgba(41, 128, 185, 0.4);
         }
 
-        @keyframes subtle-glow {
+        @keyframes globe-spin {
+            from { 
+                transform: rotate(0deg);
+            }
+            to { 
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes color-pulse {
             from { 
                 color: #2980b9;
-                text-shadow: 0 0 10px rgba(41, 128, 185, 0.3);
+                text-shadow: 0 0 10px rgba(41, 128, 185, 0.4);
             }
             to { 
                 color: #3498db;
-                text-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+                text-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
             }
         }
 
@@ -449,7 +458,7 @@
     <div class="header">
         <div class="container">
             <h1>
-                <i class="fas fa-file-contract professional-logo"></i>
+                <i class="fas fa-globe professional-logo"></i>
                 GlobalWeb Converter
             </h1>
             <p>
