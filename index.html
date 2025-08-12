@@ -38,8 +38,8 @@
             background: linear-gradient(135deg, #ced4da 0%, #adb5bd 25%, #6c757d 50%, #495057 75%, #343a40 100%);
             background-attachment: fixed;
             color: #ffffff;
-            padding: 100px 0;
-            margin-bottom: 50px;
+            padding: 40px 0;
+            margin-bottom: 20px;
             position: relative;
             overflow: hidden;
             border-bottom: 3px solid rgba(52, 58, 64, 0.6);
@@ -222,9 +222,9 @@
         }
 
         .header h1 {
-            font-size: 3.5rem;
+            font-size: 2.8rem;
             font-weight: 700;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             text-align: center;
             font-family: 'Times New Roman', Times, Georgia, serif;
             position: relative;
@@ -234,7 +234,7 @@
         }
 
         .header p {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             text-align: center;
             opacity: 0.95;
             max-width: 900px;
@@ -367,8 +367,12 @@
         .main-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 10px 20px;
             position: relative;
+            min-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         /* Floating Background Elements */
@@ -527,7 +531,7 @@
             box-shadow: 
                 0 8px 32px rgba(0, 0, 0, 0.1), 
                 0 0 20px rgba(108, 117, 125, 0.1);
-            margin-bottom: 40px;
+            margin-bottom: 15px;
             backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
@@ -568,13 +572,13 @@
 
         .card-body {
             background-color: var(--white);
-            padding: 30px;
+            padding: 20px;
         }
 
         .file-upload-zone {
             border: 3px dashed #6c757d;
             border-radius: 10px;
-            padding: 50px 30px;
+            padding: 30px 20px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
@@ -813,7 +817,7 @@
 
         .preview-frame {
             width: 100%;
-            height: 500px;
+            height: 300px;
             border: 2px solid var(--border-color);
             border-radius: 8px;
             background-color: var(--white);
@@ -1098,8 +1102,39 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
+            .header {
+                padding: 20px 0;
+                margin-bottom: 10px;
+            }
+            
             .header h1 {
-                font-size: 2.2rem;
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .main-container {
+                min-height: calc(100vh - 120px);
+                gap: 10px;
+            }
+            
+            .card {
+                margin-bottom: 10px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .file-upload-zone {
+                padding: 20px 15px;
+            }
+            
+            .preview-frame {
+                height: 250px;
             }
             
             .card-body {
