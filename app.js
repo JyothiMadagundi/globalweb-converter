@@ -3,7 +3,221 @@ class GlobalWebConverter {
     constructor() {
         this.currentHtmlContent = '';
         this.transformedHTML = '';
+        this.translationCache = new Map();
         this.initializeEventListeners();
+    }
+
+    // Fetch with real timeout using AbortController
+    fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const merged = { ...options, signal: controller.signal };
+        return fetch(url, merged).finally(() => clearTimeout(timeoutId));
+    }
+
+    // (Removed glossary/placeholder logic per request)
+
+    // Provider: Google translate (gtx)
+    async providerGoogle(cleanText, target, timeoutMs) {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(cleanText)}`;
+        const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
+        if (!resp.ok) throw new Error('google not ok');
+        const data = await resp.json();
+        const segments = Array.isArray(data?.[0]) ? data[0].map(row => row?.[0]).filter(Boolean) : [];
+        const translated = segments.join(' ').trim();
+        if (translated) return translated;
+        throw new Error('google empty');
+    }
+
+    // Provider: MyMemory
+    async providerMyMemory(cleanText, target, timeoutMs) {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=auto|${encodeURIComponent(target)}`;
+        const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
+        if (!resp.ok) throw new Error('mymemory not ok');
+        const data = await resp.json();
+        const t = (data?.responseData?.translatedText || '').trim();
+        if (t && !t.includes('MYMEMORY WARNING')) return t;
+        throw new Error('mymemory empty');
+    }
+
+    // Provider: LibreTranslate (public instance)
+    async providerLibre(cleanText, target, timeoutMs) {
+        const resp = await this.fetchWithTimeout(
+            'https://libretranslate.de/translate',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: cleanText, source: 'auto', target, format: 'text' })
+            },
+            timeoutMs
+        );
+        if (!resp.ok) throw new Error('libre not ok');
+        const data = await resp.json();
+        const t = (data?.translatedText || '').trim();
+        if (t) return t;
+        throw new Error('libre empty');
+    }
+
+    // Race multiple providers and return the first successful non-empty translation
+    async raceProviders(cleanText, target = 'en', shortTimeout = 1500, longTimeout = 3000) {
+        const attempt = async (timeoutMs) => {
+            const tasks = [
+                this.providerGoogle(cleanText, target, timeoutMs),
+                this.providerMyMemory(cleanText, target, timeoutMs),
+                this.providerLibre(cleanText, target, timeoutMs)
+            ].map(p => p.catch(() => { throw new Error('provider failed'); }));
+            try {
+                // First provider to resolve wins
+                const translated = await Promise.any(tasks);
+                return translated;
+            } catch (_) {
+                return null;
+            }
+        };
+
+        // Try short timeouts first, then longer
+        const fast = await attempt(shortTimeout);
+        if (fast) return fast;
+        const slower = await attempt(longTimeout);
+        if (slower) return slower;
+        return null;
+    }
+
+    // Remove script tags and inline on* handlers to keep preview safe and deterministic
+    stripScriptsAndEventHandlers(htmlContent) {
+        if (!htmlContent) return htmlContent;
+        let cleaned = htmlContent;
+        // Remove all <script>...</script>
+        cleaned = cleaned.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+        // Remove inline event handlers like onclick="..." or onload='...'
+        cleaned = cleaned.replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        return cleaned;
+    }
+
+    // Mask: except login pages, replace entire tag content with NA if it contains any digit or '@'
+    maskNumericAndAtExceptLogin(htmlContent) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            // Skip masking for actual auth pages (password inputs or explicit auth forms), unless forced
+            const hasPasswordField = !!(doc.querySelector && doc.querySelector('input[type="password"], input[name*="password" i]'));
+            const hasAuthForm = !!(doc.querySelector && doc.querySelector('form[action*="login" i], form[action*="signin" i], form[id*="login" i], form[class*="login" i], form[action*="auth" i]'));
+            const forceMask = (typeof window !== 'undefined' && window.FORCE_MASKING === true);
+            if ((hasPasswordField || hasAuthForm) && !forceMask) {
+                return htmlContent;
+            }
+
+            // Style for masked content (light grey)
+            const style = doc.createElement('style');
+            style.textContent = `.masked-sensitive { color: #bfc5cf !important; }\ninput::placeholder { color: #bfc5cf !important; }`;
+            (doc.head || doc.documentElement).appendChild(style);
+
+            const NA = 'NA';
+            const NUM_RE = /(\d+(?:[.,]\d+)*)/g; // numbers (incl. decimals)
+            // email: capture first char of local part, the remaining local part, and the domain
+            const EMAIL_RE = /([A-Za-z0-9._%+-])([A-Za-z0-9._%+-]*)(@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+            // Combined matcher to build DOM fragments with spans for both cases
+            const COMBINED_RE = new RegExp(`${NUM_RE.source}|${EMAIL_RE.source}`, 'g');
+
+            // Replace numbers with NA spans; mask emails as firstChar + NA + domain
+            const replaceInTextNode = (textNode) => {
+                const text = textNode.nodeValue || '';
+                if (!COMBINED_RE.test(text)) { COMBINED_RE.lastIndex = 0; return; }
+                COMBINED_RE.lastIndex = 0;
+                const frag = doc.createDocumentFragment();
+                let last = 0; let m;
+                while ((m = COMBINED_RE.exec(text)) !== null) {
+                    const idx = m.index;
+                    if (idx > last) frag.appendChild(doc.createTextNode(text.slice(last, idx)));
+                    if (m[1]) {
+                        // Number matched
+                        const span = doc.createElement('span');
+                        span.className = 'masked-sensitive';
+                        span.textContent = NA;
+                        frag.appendChild(span);
+                    } else {
+                        // Email matched: groups 2 (first char), 3 (rest), 4 (domain)
+                        const firstChar = m[2] || '';
+                        const domain = m[4] || '';
+                        if (firstChar) frag.appendChild(doc.createTextNode(firstChar));
+                        const span = doc.createElement('span');
+                        span.className = 'masked-sensitive';
+                        span.textContent = NA;
+                        frag.appendChild(span);
+                        if (domain) frag.appendChild(doc.createTextNode(domain));
+                    }
+                    last = idx + m[0].length;
+                }
+                if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
+                textNode.parentNode.replaceChild(frag, textNode);
+            };
+
+            // Walk all text nodes and replace tokens
+            const walker = doc.createTreeWalker(doc.body || doc.documentElement, NodeFilter.SHOW_TEXT, null);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(replaceInTextNode);
+
+            // Update attributes and specific elements partially
+            const root = doc.body || doc.documentElement;
+            root.querySelectorAll('*').forEach((el) => {
+                const tag = (el.tagName || '').toUpperCase();
+                if (tag === 'SCRIPT' || tag === 'STYLE') return;
+
+                // Inputs/textareas
+                if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                    if (typeof el.value === 'string' && (NUM_RE.test(el.value) || EMAIL_RE.test(el.value))) {
+                        let v = el.value;
+                        v = v.replace(EMAIL_RE, (full, first, rest, domain) => `${first}${NA}${domain}`);
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                        v = v.replace(NUM_RE, NA);
+                        el.value = v;
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                    }
+                    const ph = el.getAttribute && el.getAttribute('placeholder');
+                    if (typeof ph === 'string' && (NUM_RE.test(ph) || EMAIL_RE.test(ph))) {
+                        let nv = ph;
+                        nv = nv.replace(EMAIL_RE, (full, first, rest, domain) => `${first}${NA}${domain}`);
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                        nv = nv.replace(NUM_RE, NA);
+                        el.setAttribute('placeholder', nv);
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                    }
+                }
+
+                // Option text
+                if (tag === 'OPTION') {
+                    const t = el.textContent || '';
+                    if (NUM_RE.test(t) || EMAIL_RE.test(t)) {
+                        let nt = t.replace(EMAIL_RE, (full, first, rest, domain) => `${first}${NA}${domain}`);
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                        nt = nt.replace(NUM_RE, NA);
+                        el.textContent = nt;
+                        el.classList.add('masked-sensitive');
+                        NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                    }
+                }
+
+                // Visible attributes
+                ['value','title','alt','aria-label'].forEach((attr) => {
+                    if (el.hasAttribute && el.hasAttribute(attr)) {
+                        const v0 = el.getAttribute(attr) || '';
+                        if (NUM_RE.test(v0) || EMAIL_RE.test(v0)) {
+                            let vv = v0.replace(EMAIL_RE, (full, first, rest, domain) => `${first}${NA}${domain}`);
+                            NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                            vv = vv.replace(NUM_RE, NA);
+                            el.setAttribute(attr, vv);
+                            NUM_RE.lastIndex = 0; EMAIL_RE.lastIndex = 0;
+                        }
+                    }
+                });
+            });
+
+            return doc.documentElement.outerHTML;
+        } catch (e) {
+            return htmlContent;
+        }
     }
 
     // Initialize event listeners
@@ -85,6 +299,8 @@ class GlobalWebConverter {
         reader.readAsText(file);
     }
 
+    // Removed masking per user request
+
     // Detect language from HTML content
     detectLanguageFromContent(htmlContent) {
         // Remove HTML tags for language detection
@@ -118,16 +334,12 @@ class GlobalWebConverter {
         return 'auto'; // Default to auto-detect
     }
 
-    // Translate content using Microsoft Translator API
+    // Translate content using Microsoft Translator API (demo via public APIs chain)
     async translateWithMicrosoft(htmlContent, detectedLanguage) {
         const startTime = Date.now();
         
         try {
-            // For demo purposes, we'll use a fallback translation method
-            // In production, you would use actual Microsoft Translator API
-            
             let translatedHTML = await this.translateContentToEnglish(htmlContent, detectedLanguage);
-            
             const processingTime = Date.now() - startTime;
 
             return {
@@ -135,11 +347,11 @@ class GlobalWebConverter {
                 html: translatedHTML,
                 detectedLanguage: detectedLanguage,
                 processingTime: processingTime,
-                method: 'Microsoft Translator API (Demo)'
+                method: 'Public translation APIs (Demo)'
             };
 
         } catch (error) {
-            console.error('Error with Microsoft Translator:', error);
+            console.error('Error with translation flow:', error);
             return {
                 success: false,
                 error: error.message
@@ -150,14 +362,18 @@ class GlobalWebConverter {
     // Real translation API - no pre-fed data, uses actual translation service
     async translateContentToEnglish(htmlContent, detectedLanguage) {
         try {
-            // First, remove any existing Google Translate elements
-            let cleanedHTML = this.removeAllGoogleTranslateElements(htmlContent);
+            // First, remove any existing Google elements and scripts/handlers
+            let cleanedHTML = this.stripScriptsAndEventHandlers(
+                this.removeAllGoogleTranslateElements(htmlContent)
+            );
             
             // Use real translation API (MyMemory Free API)
             let translatedHTML = await this.simulateAPITranslation(cleanedHTML, detectedLanguage);
             
-            // Ensure no Google Translate elements remain after translation
-            translatedHTML = this.removeAllGoogleTranslateElements(translatedHTML);
+            // Ensure no scripts or Google artifacts remain after translation
+            translatedHTML = this.stripScriptsAndEventHandlers(
+                this.removeAllGoogleTranslateElements(translatedHTML)
+            );
             
             // Add translation metadata
             const translationNote = `<!-- Translated from ${detectedLanguage} to English using MyMemory Translation API -->`;
@@ -203,25 +419,13 @@ class GlobalWebConverter {
 
     // Real API translation behavior using actual translation service
     async simulateAPITranslation(htmlContent, detectedLanguage) {
-        // This uses a real translation API (MyMemory Free API)
-        // 1. Parse HTML structure
-        // 2. Extract text content
-        // 3. Translate text using real API while preserving HTML
-        // 4. Return translated HTML
-        
         try {
-            // Create a temporary DOM to parse HTML
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
-            
-            // Find all text nodes and translate them using real API
             await this.translateTextNodes(doc.body || doc.documentElement);
-            
-            // Return the translated HTML
             return doc.documentElement.outerHTML;
         } catch (error) {
             console.log('Fallback to simple text replacement');
-            // Fallback: simple text processing
             return this.translateTextContent(htmlContent, detectedLanguage);
         }
     }
@@ -229,133 +433,78 @@ class GlobalWebConverter {
     // Real text node translation using actual API
     async translateTextNodes(element) {
         if (!element) return;
-        
-        const translationPromises = [];
-        
-        // Collect all text nodes that need translation
+        const candidates = [];
         const collectTextNodes = (elem) => {
             for (let node of elem.childNodes) {
                 if (node.nodeType === Node.TEXT_NODE) {
-                    const text = node.textContent.trim();
-                    if (text.length > 2 && !this.isEnglish(text)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(text).then(translated => {
-                                node.textContent = translated;
-                            })
-                        );
+                    const raw = node.textContent || '';
+                    const text = raw.trim();
+                    if (text.length > 0 &&
+                        !(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)) &&
+                        !(/^[\d\s.,:/\-]+$/.test(text))) {
+                        candidates.push({ kind: 'text', node, original: text });
                     }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Handle attributes
-                    if (node.title && !this.isEnglish(node.title)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.title).then(translated => {
-                                node.title = translated;
-                            })
-                        );
-                    }
-                    if (node.alt && !this.isEnglish(node.alt)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.alt).then(translated => {
-                                node.alt = translated;
-                            })
-                        );
-                    }
-                    if (node.placeholder && !this.isEnglish(node.placeholder)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.placeholder).then(translated => {
-                                node.placeholder = translated;
-                            })
-                        );
-                    }
-                    // Recursively process child elements
+                    const tag = (node.tagName || '').toUpperCase();
+                    if (tag === 'SCRIPT' || tag === 'STYLE') { continue; }
+                    if (node.title) candidates.push({ kind: 'attr', attr: 'title', node, original: node.title });
+                    if (node.alt) candidates.push({ kind: 'attr', attr: 'alt', node, original: node.alt });
+                    if (node.placeholder) candidates.push({ kind: 'attr', attr: 'placeholder', node, original: node.placeholder });
                     collectTextNodes(node);
                 }
             }
         };
-        
         collectTextNodes(element);
-        
-        // Wait for all translations to complete
-        await Promise.all(translationPromises);
+
+        if (candidates.length === 0) return;
+
+        const uniqueTexts = Array.from(new Set(candidates.map(c => c.original)));
+        const results = new Map();
+
+        const worker = async (text) => {
+            try {
+                const translated = await this.simulateTextTranslation(text);
+                results.set(text, translated);
+            } catch (_) {
+                results.set(text, text);
+            }
+        };
+
+        const runWithLimit = async (items, limit) => {
+            let index = 0;
+            const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+                while (true) {
+                    const i = index++;
+                    if (i >= items.length) break;
+                    await worker(items[i]);
+                }
+            });
+            await Promise.all(workers);
+        };
+
+        await runWithLimit(uniqueTexts, 16);
+
+        for (const c of candidates) {
+            const translated = results.get(c.original) ?? c.original;
+            if (c.kind === 'text') {
+                c.node.textContent = translated;
+            } else if (c.kind === 'attr') {
+                c.node[c.attr] = translated;
+            }
+        }
     }
 
     // Real text translation using multiple free translation APIs
     async simulateTextTranslation(text) {
-        // Skip if already English or too short
-        if (this.isEnglish(text) || text.trim().length < 2) {
-            return text;
-        }
-        
         const cleanText = text.trim();
-        
-        try {
-            // Try MyMemory API first (most reliable for Chinese)
-            const myMemoryResponse = await fetch(
-                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=auto|en`,
-                { timeout: 5000 }
-            );
-            
-            if (myMemoryResponse.ok) {
-                const data = await myMemoryResponse.json();
-                if (data.responseStatus === 200 && data.responseData.translatedText) {
-                    const translated = data.responseData.translatedText.trim();
-                    // Check if translation is meaningful (not just copied text)
-                    if (translated && translated !== cleanText && !translated.includes('MYMEMORY WARNING')) {
-                        return translated;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('MyMemory API error, trying fallback...');
-        }
-        
-        try {
-            // Fallback 1: Try LibreTranslate public instance
-            const libreResponse = await fetch('https://libretranslate.de/translate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    q: cleanText,
-                    source: 'auto',
-                    target: 'en',
-                    format: 'text'
-                }),
-                timeout: 5000
-            });
-            
-            if (libreResponse.ok) {
-                const data = await libreResponse.json();
-                if (data.translatedText && data.translatedText !== cleanText) {
-                    return data.translatedText.trim();
-                }
-            }
-        } catch (error) {
-            console.log('LibreTranslate API error, trying another API...');
-        }
+        if (!cleanText) return text;
 
-        try {
-            // Fallback 2: Try another free translation service
-            const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(cleanText)}`, {
-                timeout: 3000
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data[0] && data[0][0] && data[0][0][0]) {
-                    const translated = data[0][0][0].trim();
-                    if (translated && translated !== cleanText) {
-                        return translated;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Google Translate API error, no more fallbacks available...');
-        }
-        
-        // Final fallback: Return original text if all APIs fail
-        // NO PRE-FED DATA - purely API-based translation
+        const cacheKey = `en|${cleanText}`;
+        const cached = this.translationCache.get(cacheKey);
+        if (cached) return cached;
+
+        const translated = await this.raceProviders(cleanText, 'en', 1200, 2500);
+        if (translated) { this.translationCache.set(cacheKey, translated); return translated; }
         return text;
     }
 
@@ -414,8 +563,9 @@ class GlobalWebConverter {
         setTimeout(async () => {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
             console.log('Detected language:', detectedLanguage);
-            
-            const result = await this.translateWithMicrosoft(this.currentHtmlContent, detectedLanguage);
+            // Apply masking per latest requirement, then translate
+            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
+            const result = await this.translateWithMicrosoft(masked, detectedLanguage);
             console.log('Translation result:', result);
 
             this.showLoading(false);
@@ -444,7 +594,8 @@ class GlobalWebConverter {
         // Add small delay for smooth UX
         setTimeout(async () => {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-            const result = await this.translateWithMicrosoft(this.currentHtmlContent, detectedLanguage);
+            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
+            const result = await this.translateWithMicrosoft(masked, detectedLanguage);
 
             this.showLoading(false);
 
@@ -457,6 +608,133 @@ class GlobalWebConverter {
             }
         }, 300);
     }
+
+    // (Removed target-language flows per request)
+
+    // Translate to target language using same API chain
+    async translateToLanguage(htmlContent, detectedLanguage, targetLang) {
+        const startTime = Date.now();
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            await this.translateTextNodesToLanguage(doc.body || doc.documentElement, targetLang);
+            const out = this.stripScriptsAndEventHandlers(doc.documentElement.outerHTML);
+            const processingTime = Date.now() - startTime;
+            return { success: true, html: out, detectedLanguage: targetLang, processingTime };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    async translateTextNodesToLanguage(element, targetLang) {
+        if (!element) return;
+        const candidates = [];
+        const walk = (el) => {
+            for (let node of el.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const trimmed = (node.textContent || '').trim();
+                    if (trimmed.length > 0 &&
+                        !(/^[\d\s.,:/\-]+$/.test(trimmed)) &&
+                        !(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(trimmed))) {
+                        candidates.push({ kind: 'text', node, original: trimmed });
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tag = (node.tagName || '').toUpperCase();
+                    if (tag === 'SCRIPT' || tag === 'STYLE') { continue; }
+                    if (node.title) candidates.push({ kind: 'attr', attr: 'title', node, original: node.title });
+                    if (node.alt) candidates.push({ kind: 'attr', attr: 'alt', node, original: node.alt });
+                    if (node.placeholder) candidates.push({ kind: 'attr', attr: 'placeholder', node, original: node.placeholder });
+                    walk(node);
+                }
+            }
+        };
+        walk(element);
+
+        if (candidates.length === 0) return;
+
+        const uniqueTexts = Array.from(new Set(candidates.map(c => c.original)));
+        const results = new Map();
+
+        const worker = async (text) => {
+            try {
+                const translated = await this.simulateTextTranslationTo(text, targetLang);
+                results.set(text, translated);
+            } catch (_) {
+                results.set(text, text);
+            }
+        };
+        const runWithLimit = async (items, limit) => {
+            let index = 0;
+            const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+                while (true) {
+                    const i = index++;
+                    if (i >= items.length) break;
+                    await worker(items[i]);
+                }
+            });
+            await Promise.all(workers);
+        };
+        await runWithLimit(uniqueTexts, 16);
+
+        for (const c of candidates) {
+            const translated = results.get(c.original) ?? c.original;
+            if (c.kind === 'text') c.node.textContent = translated;
+            else c.node[c.attr] = translated;
+        }
+    }
+
+    async simulateTextTranslationTo(text, target) {
+        const cleanText = text.trim();
+        if (!cleanText) return text;
+        const cacheKey = `${target}|${cleanText}`;
+        const cached = this.translationCache.get(cacheKey);
+        if (cached) return cached;
+        const translated = await this.raceProviders(cleanText, target, 1200, 2500);
+        if (translated) { this.translationCache.set(cacheKey, translated); return translated; }
+        return text;
+    }
+
+    // Offline translation (no network). Stub that preserves structure.
+    async translateWithOfflineModel(htmlContent, detectedLanguage) {
+        const startTime = Date.now();
+        try {
+            // Parse and traverse, leaving text as-is (placeholder for local model inference)
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            // Ensure local ONNX runtime and model if available
+            await this.ensureOfflineModel();
+
+            if (this.offlineSession) {
+                // Perform offline translation for text nodes if model is loaded
+                await this.offlineTranslateTextNodes(doc.body || doc.documentElement, detectedLanguage || 'auto', 'en');
+            }
+
+            // If network translation explicitly allowed, perform network translation on the masked content
+            if (this.allowNetwork()) {
+                await this.translateTextNodes(doc.body || doc.documentElement);
+            }
+
+            const offlineHTML = doc.documentElement.outerHTML;
+
+            const processingTime = Date.now() - startTime;
+            return {
+                success: true,
+                html: offlineHTML,
+                detectedLanguage: detectedLanguage,
+                processingTime: processingTime,
+                method: 'Offline (no network)'
+            };
+        } catch (error) {
+            console.error('Offline translation error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    // No offline model hooks in this mode
 
     // Validate and prepare input
     validateInput() {
@@ -759,6 +1037,8 @@ function processAndDownload() {
         console.error('Converter not initialized');
     }
 }
+
+// Removed target-language global handlers
 
 function downloadTransformedHTML() {
     console.log('Global downloadTransformedHTML called');
