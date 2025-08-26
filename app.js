@@ -9,10 +9,22 @@ class GlobalWebConverter {
 
     // Fetch with real timeout using AbortController
     fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        const merged = { ...options, signal: controller.signal };
-        return fetch(url, merged).finally(() => clearTimeout(timeoutId));
+        try {
+            if (typeof AbortController === 'undefined') {
+                // Fallback for older browsers: race without aborting the fetch
+                return Promise.race([
+                    fetch(url, options),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+                ]);
+            }
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            const merged = { ...options, signal: controller.signal };
+            return fetch(url, merged).finally(() => clearTimeout(timeoutId));
+        } catch (_) {
+            // Last-resort fallback
+            return fetch(url, options);
+        }
     }
 
     // (Removed glossary/placeholder logic per request)
@@ -59,20 +71,29 @@ class GlobalWebConverter {
     }
 
     // Race multiple providers and return the first successful non-empty translation
-    async raceProviders(cleanText, target = 'en', shortTimeout = 1500, longTimeout = 3000) {
+    async raceProviders(cleanText, target = 'en', shortTimeout = 4000, longTimeout = 9000) {
         const attempt = async (timeoutMs) => {
-            const tasks = [
-                this.providerGoogle(cleanText, target, timeoutMs),
-                this.providerMyMemory(cleanText, target, timeoutMs),
-                this.providerLibre(cleanText, target, timeoutMs)
-            ].map(p => p.catch(() => { throw new Error('provider failed'); }));
-            try {
-                // First provider to resolve wins
-                const translated = await Promise.any(tasks);
-                return translated;
-            } catch (_) {
-                return null;
-            }
+            const providers = [
+                () => this.providerGoogle(cleanText, target, timeoutMs),
+                () => this.providerMyMemory(cleanText, target, timeoutMs),
+                () => this.providerLibre(cleanText, target, timeoutMs)
+            ];
+            // Manual first-success race (compatible with browsers lacking Promise.any)
+            return new Promise((resolve) => {
+                let pending = providers.length;
+                let settled = false;
+                providers.forEach(start => {
+                    start().then(result => {
+                        if (!settled && result) {
+                            settled = true;
+                            resolve(result);
+                        }
+                    }).catch(() => {
+                        pending -= 1;
+                        if (!settled && pending === 0) resolve(null);
+                    });
+                });
+            });
         };
 
         // Try short timeouts first, then longer
