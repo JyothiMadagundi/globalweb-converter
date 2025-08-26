@@ -19,24 +19,195 @@
             --medium-gray: #e9ecef;
             --dark-gray: #6c757d;
             --border-color: #dee2e6;
-            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow: 0 2px 10px rgba(14, 8, 8, 0.1);
             --shadow-lg: 0 4px 20px rgba(0,0,0,0.15);
         }
 
         body {
             font-family: 'Times New Roman', Times, Georgia, serif;
-            background-color: var(--light-gray);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 25%, #dee2e6 50%, #ced4da 75%, #adb5bd 100%);
+            background-attachment: fixed;
             color: var(--primary-color);
             line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #1a252f 0%, var(--primary-color) 50%, var(--secondary-color) 100%);
-            color: var(--white);
-            padding: 80px 0;
-            margin-bottom: 50px;
+            background: linear-gradient(135deg, #ced4da 0%, #adb5bd 25%, #6c757d 50%, #495057 75%, #343a40 100%);
+            background-attachment: fixed;
+            color: #ffffff;
+            padding: 40px 0;
+            margin-bottom: 20px;
             position: relative;
             overflow: hidden;
+            border-bottom: 3px solid rgba(52, 58, 64, 0.6);
+            box-shadow: 0 5px 30px rgba(52, 58, 64, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes header-gradient {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* Floating Letters Animation */
+        .floating-letters {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-letter {
+            position: absolute;
+            font-size: 2.5rem;
+            font-weight: bold;
+            opacity: 0.5;
+            animation: float 15s infinite linear;
+            font-family: serif;
+            background: linear-gradient(45deg, #6c757d, #495057, #343a40, #212529, #495057, #6c757d, #343a40);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 300% 300%;
+            animation: float 15s infinite linear, header-gradient-flow 4s ease-in-out infinite alternate;
+        }
+
+        /* Different language letters with unique positions and delays */
+        .floating-letter:nth-child(1) { left: 5%; animation-delay: 0s; font-size: 2rem; }
+        .floating-letter:nth-child(2) { left: 15%; animation-delay: 2s; font-size: 2.8rem; }
+        .floating-letter:nth-child(3) { left: 25%; animation-delay: 4s; font-size: 1.8rem; }
+        .floating-letter:nth-child(4) { left: 35%; animation-delay: 6s; font-size: 2.2rem; }
+        .floating-letter:nth-child(5) { left: 45%; animation-delay: 8s; font-size: 2.6rem; }
+        .floating-letter:nth-child(6) { left: 55%; animation-delay: 10s; font-size: 2rem; }
+        .floating-letter:nth-child(7) { left: 65%; animation-delay: 12s; font-size: 2.4rem; }
+        .floating-letter:nth-child(8) { left: 75%; animation-delay: 14s; font-size: 1.9rem; }
+        .floating-letter:nth-child(9) { left: 85%; animation-delay: 16s; font-size: 2.3rem; }
+        .floating-letter:nth-child(10) { left: 95%; animation-delay: 18s; font-size: 2.1rem; }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes rainbow {
+            0% {
+                background-position: 0% 50%;
+            }
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes header-gradient-flow {
+            0% {
+                background-position: 0% 50%;
+            }
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .header .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Animated Geometric Shapes in Header */
+        .header-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.2;
+            animation: shape-float 12s infinite ease-in-out;
+        }
+
+        .shape-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape-triangle {
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-bottom: 50px solid rgba(255, 255, 255, 0.3);
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .shape-square {
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            top: 30%;
+            right: 25%;
+            animation-delay: 4s;
+            transform: rotate(45deg);
+        }
+
+        .shape-diamond {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(45deg);
+            top: 70%;
+            left: 80%;
+            animation-delay: 6s;
+        }
+
+        @keyframes shape-float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.2;
+            }
+            25% {
+                transform: translateY(-20px) rotate(90deg);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translateY(-10px) rotate(180deg);
+                opacity: 0.25;
+            }
+            75% {
+                transform: translateY(-30px) rotate(270deg);
+                opacity: 0.35;
+            }
         }
 
         .header::before {
@@ -51,9 +222,9 @@
         }
 
         .header h1 {
-            font-size: 3.5rem;
+            font-size: 2.8rem;
             font-weight: 700;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             text-align: center;
             font-family: 'Times New Roman', Times, Georgia, serif;
             position: relative;
@@ -63,7 +234,7 @@
         }
 
         .header p {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             text-align: center;
             opacity: 0.95;
             max-width: 900px;
@@ -77,12 +248,12 @@
 
         .professional-logo {
             display: inline-block;
-            color: #3498db;
+            color: #f8f9fa;
             margin-right: 15px;
-            font-size: 1.1em;
-            animation: globe-rotate 6s linear infinite, color-shift 4s ease-in-out infinite alternate;
-            text-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
-            filter: drop-shadow(0 2px 4px rgba(52, 152, 219, 0.3));
+            font-size: 1.2em;
+            animation: globe-rotate 6s linear infinite, logo-glow 3s ease-in-out infinite alternate;
+            text-shadow: 0 0 8px rgba(248, 249, 250, 0.4);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
         }
 
         @keyframes globe-rotate {
@@ -105,21 +276,280 @@
             }
         }
 
+        @keyframes logo-glow {
+            from {
+                text-shadow: 0 0 8px rgba(248, 249, 250, 0.4);
+                transform: scale(1);
+            }
+            to {
+                text-shadow: 0 0 12px rgba(248, 249, 250, 0.6), 0 0 16px rgba(173, 181, 189, 0.3);
+                transform: scale(1.02);
+            }
+        }
+
+
+
+
+
+        @keyframes float-bg {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            15% {
+                opacity: 0.08;
+            }
+            85% {
+                opacity: 0.08;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Additional Animation Keyframes */
+        @keyframes float-spiral {
+            0% { transform: translateY(100vh) translateX(0) rotate(0deg); opacity: 0; }
+            15% { opacity: 0.06; }
+            25% { transform: translateY(75vh) translateX(15px) rotate(90deg); }
+            50% { transform: translateY(50vh) translateX(0) rotate(180deg); }
+            75% { transform: translateY(25vh) translateX(-15px) rotate(270deg); }
+            85% { opacity: 0.06; }
+            100% { transform: translateY(-100px) translateX(0) rotate(360deg); opacity: 0; }
+        }
+
+        @keyframes float-wave {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            15% { opacity: 0.05; }
+            25% { transform: translateY(75vh) translateX(20px); }
+            50% { transform: translateY(50vh) translateX(0); }
+            75% { transform: translateY(25vh) translateX(-20px); }
+            85% { opacity: 0.05; }
+            100% { transform: translateY(-100px) translateX(0); opacity: 0; }
+        }
+
+        @keyframes float-bounce {
+            0% { transform: translateY(100vh) scale(1); opacity: 0; }
+            15% { opacity: 0.04; }
+            25% { transform: translateY(75vh) scale(1.1); }
+            50% { transform: translateY(50vh) scale(1); }
+            75% { transform: translateY(25vh) scale(1.1); }
+            85% { opacity: 0.04; }
+            100% { transform: translateY(-100px) scale(1); opacity: 0; }
+        }
+
+        @keyframes float-rotate {
+            0% { transform: translateY(100vh) rotate(0deg) translateX(30px) rotate(0deg); opacity: 0; }
+            15% { opacity: 0.03; }
+            85% { opacity: 0.03; }
+            100% { transform: translateY(-100px) rotate(360deg) translateX(30px) rotate(-360deg); opacity: 0; }
+        }
+
+        @keyframes float-text {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            15% { opacity: 0.02; }
+            25% { transform: translateY(75vh) rotate(5deg); }
+            50% { transform: translateY(50vh) rotate(0deg); }
+            75% { transform: translateY(25vh) rotate(-5deg); }
+            85% { opacity: 0.02; }
+            100% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+        }
+
+        @keyframes float-bubble {
+            0% { transform: translateY(100vh) scale(1); opacity: 0; }
+            15% { opacity: 0.02; }
+            50% { transform: translateY(50vh) scale(1.2); }
+            85% { opacity: 0.02; }
+            100% { transform: translateY(-100px) scale(1); opacity: 0; }
+        }
+
         .main-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 10px 20px;
+            position: relative;
+            min-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
+        /* Floating Background Elements */
+        .bg-floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-icon {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.06;
+            animation: float-bg 30s infinite linear;
+            color: #6c757d;
+            text-shadow: 0 0 10px rgba(108, 117, 125, 0.3);
+        }
+
+        .floating-icon:nth-child(1) { left: 5%; animation-delay: 0s; font-size: 1.5rem; }
+        .floating-icon:nth-child(2) { left: 15%; animation-delay: 3s; font-size: 2.2rem; }
+        .floating-icon:nth-child(3) { left: 25%; animation-delay: 6s; font-size: 1.8rem; }
+        .floating-icon:nth-child(4) { left: 35%; animation-delay: 9s; font-size: 2rem; }
+        .floating-icon:nth-child(5) { left: 45%; animation-delay: 12s; font-size: 1.6rem; }
+        .floating-icon:nth-child(6) { left: 55%; animation-delay: 15s; font-size: 2.1rem; }
+        .floating-icon:nth-child(7) { left: 65%; animation-delay: 18s; font-size: 1.9rem; }
+        .floating-icon:nth-child(8) { left: 75%; animation-delay: 21s; font-size: 1.7rem; }
+        .floating-icon:nth-child(9) { left: 85%; animation-delay: 24s; font-size: 2.3rem; }
+        .floating-icon:nth-child(10) { left: 95%; animation-delay: 27s; font-size: 1.4rem; }
+        .floating-icon:nth-child(11) { left: 10%; animation-delay: 1s; font-size: 1.8rem; }
+        .floating-icon:nth-child(12) { left: 30%; animation-delay: 4s; font-size: 2.0rem; }
+        .floating-icon:nth-child(13) { left: 50%; animation-delay: 7s; font-size: 1.6rem; }
+        .floating-icon:nth-child(14) { left: 70%; animation-delay: 10s; font-size: 2.2rem; }
+        .floating-icon:nth-child(15) { left: 90%; animation-delay: 13s; font-size: 1.9rem; }
+
+        /* Additional floating icons with different animations */
+        .delay-1 { left: 12%; animation: float-spiral 25s infinite linear; animation-delay: -1s; font-size: 1.6rem; }
+        .delay-2 { left: 28%; animation: float-wave 18s infinite ease-in-out; animation-delay: -3s; font-size: 2.1rem; }
+        .delay-3 { left: 42%; animation: float-bounce 22s infinite ease-in-out; animation-delay: -5s; font-size: 1.8rem; }
+        .delay-4 { left: 58%; animation: float-spiral 30s infinite linear; animation-delay: -7s; font-size: 1.5rem; }
+        .delay-5 { left: 72%; animation: float-wave 20s infinite ease-in-out; animation-delay: -9s; font-size: 2.0rem; }
+        .delay-6 { left: 18%; animation: float-bounce 24s infinite ease-in-out; animation-delay: -11s; font-size: 1.7rem; }
+        .delay-7 { left: 38%; animation: float-bg 26s infinite linear; animation-delay: -13s; font-size: 1.9rem; }
+        .delay-8 { left: 52%; animation: float-spiral 28s infinite linear; animation-delay: -15s; font-size: 1.4rem; }
+        .delay-9 { left: 68%; animation: float-wave 16s infinite ease-in-out; animation-delay: -17s; font-size: 2.2rem; }
+        .delay-10 { left: 82%; animation: float-bounce 32s infinite ease-in-out; animation-delay: -19s; font-size: 1.6rem; }
+
+        /* Floating geometric shapes */
+        .floating-shape {
+            position: absolute;
+            opacity: 0.03;
+            animation: float-rotate 35s infinite linear;
+        }
+
+        .circle-shape {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #6c757d;
+            border-radius: 50%;
+            left: 22%;
+            animation-delay: -5s;
+        }
+
+        .triangle-shape {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 17px solid #6c757d;
+            left: 48%;
+            animation-delay: -10s;
+        }
+
+        .square-shape {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #6c757d;
+            left: 65%;
+            animation-delay: -15s;
+        }
+
+        .diamond-shape {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #6c757d;
+            transform: rotate(45deg);
+            left: 32%;
+            animation-delay: -20s;
+        }
+
+        .hexagon-shape {
+            width: 20px;
+            height: 11px;
+            background: transparent;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 6px solid #6c757d;
+            position: relative;
+            left: 78%;
+            animation-delay: -25s;
+        }
+
+        .hexagon-shape:before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 6px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 6px solid #6c757d;
+        }
+
+        /* Floating text elements */
+        .floating-text {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            opacity: 0.02;
+            color: #6c757d;
+            font-family: 'Times New Roman', serif;
+            animation: float-text 40s infinite ease-in-out;
+        }
+
+        .floating-text:nth-of-type(1) { left: 25%; animation-delay: -8s; }
+        .floating-text:nth-of-type(2) { left: 45%; animation-delay: -16s; }
+        .floating-text:nth-of-type(3) { left: 65%; animation-delay: -24s; }
+        .floating-text:nth-of-type(4) { left: 15%; animation-delay: -32s; }
+        .floating-text:nth-of-type(5) { left: 85%; animation-delay: -40s; }
+
+        /* Floating bubbles */
+        .floating-bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(108, 117, 125, 0.04), rgba(108, 117, 125, 0.01));
+            border: 1px solid rgba(108, 117, 125, 0.02);
+            animation: float-bubble 45s infinite ease-in-out;
+        }
+
+        .bubble-1 { width: 30px; height: 30px; left: 20%; animation-delay: -5s; }
+        .bubble-2 { width: 25px; height: 25px; left: 50%; animation-delay: -15s; }
+        .bubble-3 { width: 35px; height: 35px; left: 70%; animation-delay: -25s; }
+        .bubble-4 { width: 20px; height: 20px; left: 30%; animation-delay: -35s; }
+        .bubble-5 { width: 40px; height: 40px; left: 60%; animation-delay: -45s; }
+        .bubble-6 { width: 28px; height: 28px; left: 80%; animation-delay: -55s; }
+
         .card {
-            border: 1px solid #e1e8ed;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 40px;
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid rgba(108, 117, 125, 0.2);
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.9));
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1), 
+                0 0 20px rgba(108, 117, 125, 0.1);
+            margin-bottom: 15px;
+            backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
         }
+
+
+
+
+
+        /* Card Content Styling */
+        .card-body h5 {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+
+
+
 
         .card::before {
             content: '';
@@ -142,33 +572,34 @@
 
         .card-body {
             background-color: var(--white);
-            padding: 30px;
+            padding: 20px;
         }
 
         .file-upload-zone {
-            border: 3px dashed var(--accent-color);
+            border: 3px dashed #6c757d;
             border-radius: 10px;
-            padding: 50px 30px;
+            padding: 30px 20px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
-            background-color: #f8fbff;
+            background-color: #f8f9fa;
         }
 
         .file-upload-zone:hover {
-            border-color: var(--success-color);
-            background-color: #f0f9f4;
+            border-color: #495057;
+            background-color: #f1f3f4;
+            opacity: 0.9;
         }
 
         .file-upload-zone.dragover {
-            border-color: var(--success-color);
-            background-color: #f0f9f4;
-            transform: scale(1.02);
+            border-color: #495057;
+            background-color: #f1f3f4;
+            opacity: 0.95;
         }
 
         .upload-icon {
             font-size: 4rem;
-            color: var(--accent-color);
+            color: #6c757d;
             margin-bottom: 20px;
         }
 
@@ -218,40 +649,109 @@
         }
 
         .btn-primary {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 50%, #4a90e2 100%);
+            background-size: 200% 200%;
+            border: 2px solid #4a90e2;
             color: var(--white);
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(74, 144, 226, 0.3);
+            border-radius: 8px;
         }
 
         .btn-primary:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
+            background: linear-gradient(135deg, #357abd 0%, #2968a3 50%, #357abd 100%);
+            border-color: #357abd;
             transform: translateY(-2px);
-            box-shadow: var(--shadow);
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+        }
+
+        @keyframes btn-rainbow {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes btn-float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-2px);
+            }
+        }
+
+        @keyframes btn-pulse-hover {
+            0%, 100% {
+                box-shadow: 
+                    0 15px 35px rgba(120, 119, 198, 0.5),
+                    0 0 30px rgba(255, 119, 198, 0.3);
+            }
+            50% {
+                box-shadow: 
+                    0 20px 45px rgba(120, 119, 198, 0.7),
+                    0 0 40px rgba(255, 119, 198, 0.5);
+            }
+        }
+
+        @keyframes btn-shimmer {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes btn-pulse {
+            0%, 100% {
+                transform: translateY(-3px) scale(1.05);
+            }
+            50% {
+                transform: translateY(-5px) scale(1.08);
+            }
         }
 
         .btn-success {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
+            background: linear-gradient(135deg, #28a745 0%, #20923a 50%, #28a745 100%);
+            background-size: 200% 200%;
+            border: 2px solid #28a745;
             color: var(--white);
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+            border-radius: 8px;
         }
 
         .btn-success:hover {
-            background-color: #229954;
-            border-color: #229954;
+            background: linear-gradient(135deg, #20923a 0%, #1e7e34 50%, #20923a 100%);
+            border-color: #20923a;
             transform: translateY(-2px);
-            box-shadow: var(--shadow);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
 
+
+
         .btn-outline-secondary {
-            border-color: var(--dark-gray);
-            color: var(--dark-gray);
+            border: 2px solid #6c757d;
+            color: #6c757d;
+            background: transparent;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 8px;
         }
 
         .btn-outline-secondary:hover {
-            background-color: var(--dark-gray);
-            border-color: var(--dark-gray);
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            border-color: #6c757d;
             color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
         }
 
         .result-container {
@@ -317,7 +817,7 @@
 
         .preview-frame {
             width: 100%;
-            height: 500px;
+            height: 300px;
             border: 2px solid var(--border-color);
             border-radius: 8px;
             background-color: var(--white);
@@ -434,10 +934,207 @@
             font-family: 'Times New Roman', Times, Georgia, serif;
         }
 
+        /* Success Doll Popup */
+        .success-doll {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            z-index: 1000;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border: 3px solid #6c757d;
+            border-radius: 20px;
+            width: 140px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            padding: 10px;
+        }
+
+        .success-doll.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            animation: doll-bounce 0.8s ease-out;
+        }
+
+        .custom-doll {
+            width: 60px;
+            height: 80px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        /* Doll Head */
+        .doll-head {
+            width: 35px;
+            height: 35px;
+            background: #fdbcb4;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto 5px;
+            border: 2px solid #f4a6a0;
+        }
+
+        .doll-hair {
+            width: 40px;
+            height: 25px;
+            background: #8B4513;
+            border-radius: 20px 20px 5px 5px;
+            position: absolute;
+            top: -8px;
+            left: -2.5px;
+            z-index: -1;
+        }
+
+        .doll-face-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .doll-eyes {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .eye {
+            width: 4px;
+            height: 4px;
+            background: #333;
+            border-radius: 50%;
+        }
+
+        .doll-mouth {
+            width: 6px;
+            height: 3px;
+            background: #ff6b6b;
+            border-radius: 0 0 6px 6px;
+            margin: 0 auto;
+        }
+
+        /* Doll Body */
+        .doll-body {
+            position: relative;
+            width: 100%;
+            height: 40px;
+        }
+
+        .doll-dress {
+            width: 30px;
+            height: 35px;
+            background: linear-gradient(145deg, #ff9ff3, #f368e0);
+            border-radius: 0 0 15px 15px;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #e056d1;
+        }
+
+        .doll-arms {
+            position: absolute;
+            top: 5px;
+            width: 100%;
+        }
+
+        .arm {
+            width: 12px;
+            height: 20px;
+            background: #fdbcb4;
+            border-radius: 6px;
+            border: 1px solid #f4a6a0;
+            position: absolute;
+        }
+
+        .left-arm {
+            left: 8px;
+            transform: rotate(-20deg);
+        }
+
+        .right-arm {
+            right: 8px;
+            transform: rotate(20deg);
+        }
+
+        .doll-message {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #495057;
+            text-align: center;
+            font-family: 'Times New Roman', serif;
+            margin-top: 5px;
+        }
+
+        @keyframes doll-bounce {
+            0% {
+                transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2) rotate(-90deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+        }
+
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(248, 249, 250, 0.3);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .success-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
+            .header {
+                padding: 20px 0;
+                margin-bottom: 10px;
+            }
+            
             .header h1 {
-                font-size: 2.2rem;
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .main-container {
+                min-height: calc(100vh - 120px);
+                gap: 10px;
+            }
+            
+            .card {
+                margin-bottom: 10px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .file-upload-zone {
+                padding: 20px 15px;
+            }
+            
+            .preview-frame {
+                height: 250px;
             }
             
             .card-body {
@@ -456,22 +1153,127 @@
     </style>
 </head>
 <body>
+    <!-- Floating Background Elements -->
+    <div class="bg-floating-elements">
+        <!-- Original floating icons -->
+        <div class="floating-icon">🌍</div>
+        <div class="floating-icon">📝</div>
+        <div class="floating-icon">🔄</div>
+        <div class="floating-icon">💬</div>
+        <div class="floating-icon">🌐</div>
+        <div class="floating-icon">✨</div>
+        <div class="floating-icon">📚</div>
+        <div class="floating-icon">🎯</div>
+        <div class="floating-icon">🚀</div>
+        <div class="floating-icon">⚡</div>
+        <div class="floating-icon">🔍</div>
+        <div class="floating-icon">💡</div>
+        <div class="floating-icon">🎨</div>
+        <div class="floating-icon">🔧</div>
+        <div class="floating-icon">📊</div>
+        
+        <!-- Additional floating icons -->
+        <div class="floating-icon delay-1">🗣️</div>
+        <div class="floating-icon delay-2">📖</div>
+        <div class="floating-icon delay-3">🌟</div>
+        <div class="floating-icon delay-4">🔤</div>
+        <div class="floating-icon delay-5">📄</div>
+        <div class="floating-icon delay-6">🌏</div>
+        <div class="floating-icon delay-7">💻</div>
+        <div class="floating-icon delay-8">🎪</div>
+        <div class="floating-icon delay-9">🎭</div>
+        <div class="floating-icon delay-10">🎨</div>
+        
+        <!-- Geometric floating shapes -->
+        <div class="floating-shape circle-shape"></div>
+        <div class="floating-shape triangle-shape"></div>
+        <div class="floating-shape square-shape"></div>
+        <div class="floating-shape diamond-shape"></div>
+        <div class="floating-shape hexagon-shape"></div>
+        
+        <!-- Floating text elements -->
+        <div class="floating-text">ABC</div>
+        <div class="floating-text">中文</div>
+        <div class="floating-text">العربية</div>
+        <div class="floating-text">हिंदी</div>
+        <div class="floating-text">日本語</div>
+        
+        <!-- Floating bubbles -->
+        <div class="floating-bubble bubble-1"></div>
+        <div class="floating-bubble bubble-2"></div>
+        <div class="floating-bubble bubble-3"></div>
+        <div class="floating-bubble bubble-4"></div>
+        <div class="floating-bubble bubble-5"></div>
+        <div class="floating-bubble bubble-6"></div>
+    </div>
+
+    <!-- Success Doll Popup -->
+    <div class="success-overlay" id="successOverlay"></div>
+    <div class="success-doll" id="successDoll">
+        <div class="custom-doll">
+            <!-- Doll Head -->
+            <div class="doll-head">
+                <div class="doll-hair"></div>
+                <div class="doll-face-area">
+                    <div class="doll-eyes">
+                        <div class="eye left-eye"></div>
+                        <div class="eye right-eye"></div>
+                    </div>
+                    <div class="doll-mouth"></div>
+                </div>
+            </div>
+            <!-- Doll Body -->
+            <div class="doll-body">
+                <div class="doll-dress"></div>
+                <div class="doll-arms">
+                    <div class="arm left-arm"></div>
+                    <div class="arm right-arm"></div>
+                </div>
+            </div>
+        </div>
+        <div class="doll-message">Translation<br>Complete!</div>
+    </div>
+
     <!-- Header -->
     <div class="header">
+        <!-- Animated Geometric Shapes -->
+        <div class="header-shapes">
+            <div class="shape shape-circle"></div>
+            <div class="shape shape-triangle"></div>
+            <div class="shape shape-square"></div>
+            <div class="shape shape-diamond"></div>
+        </div>
+        
+        <!-- Floating Language Letters Animation -->
+        <div class="floating-letters">
+            <div class="floating-letter">中</div>
+            <div class="floating-letter">ع</div>
+            <div class="floating-letter">Р</div>
+            <div class="floating-letter">ñ</div>
+            <div class="floating-letter">ç</div>
+            <div class="floating-letter">ß</div>
+            <div class="floating-letter">日</div>
+            <div class="floating-letter">한</div>
+            <div class="floating-letter">ह</div>
+            <div class="floating-letter">θ</div>
+            <div class="floating-letter">A</div>
+        </div>
+        
         <div class="container">
             <h1>
                 <i class="fas fa-globe-americas professional-logo"></i>
                 GlobalWeb Converter
             </h1>
             <p>
-                Transform any HTML content into a multi-language website with Google Translate integration. 
-                Supporting 100+ languages with intelligent auto-detection.
+                Transform any HTML content to English using real translation API technology. 
+                Supporting 100+ languages with intelligent detection and accurate translations.
             </p>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-container">
+
         <!-- Upload Section -->
         <div class="card">
             <div class="card-header">
@@ -479,47 +1281,45 @@
                 Upload HTML File
             </div>
             <div class="card-body">
-                <!-- File Upload Zone -->
-                <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
-                    <div class="upload-icon">
+            <!-- File Upload Zone -->
+            <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">
                         <i class="fas fa-file-import"></i>
-                    </div>
+                </div>
                     <h5 class="upload-text">Drop your HTML file here or click to browse</h5>
                     <p class="upload-subtext">Supports .html, .htm files up to 10MB</p>
-                    <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
-                </div>
+                <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
+            </div>
 
-                <!-- Or Text Input -->
-                <div class="text-center my-4">
+            <!-- Or Text Input -->
+            <div class="text-center my-4">
                     <strong class="text-muted">OR</strong>
-                </div>
+            </div>
 
-                <div class="mb-4">
-                    <label for="htmlContent" class="form-label">
-                        <i class="fas fa-code me-2"></i>Paste HTML Content:
-                    </label>
-                    <textarea id="htmlContent" class="form-control" rows="8" placeholder="Paste your content here to translate..."><html>
-<p>Paste your content here</p>
-</html></textarea>
+            <div class="mb-4">
+                <label for="htmlContent" class="form-label">
+                        <i class="fas fa-code me-2"></i>Paste Content to Translate:
+                </label>
+                    <textarea id="htmlContent" class="form-control" rows="8" placeholder="Paste your HTML content or plain text here to translate..."></textarea>
                 </div>
 
                 <!-- Loading Spinner -->
                 <div class="loading-spinner" id="loadingSpinner">
                     <div class="spinner"></div>
                     <p class="text-muted">Processing your HTML...</p>
-                </div>
+            </div>
 
-                <!-- Action Buttons -->
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <button type="button" class="btn btn-primary w-100" onclick="processAndPreview()">
-                            <i class="fas fa-magic me-2"></i>Transform & Preview
-                        </button>
-                    </div>
-                    <div class="col-md-6">
+            <!-- Action Buttons -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                                            <button type="button" class="btn btn-primary w-100" onclick="processAndPreview()">
+                        <i class="fas fa-language me-2"></i>Translate & Preview
+                    </button>
+                </div>
+                <div class="col-md-6">
                         <button type="button" class="btn btn-success w-100" onclick="processAndDownload()">
-                            <i class="fas fa-download me-2"></i>Transform & Download
-                        </button>
+                            <i class="fas fa-download me-2"></i>Translate & Download
+                    </button>
                     </div>
                 </div>
             </div>
@@ -573,7 +1373,7 @@
                     
                     <div class="tab-content" id="resultTabContent">
                         <div class="tab-pane fade show active" id="preview" role="tabpanel">
-                            <iframe id="previewFrame" class="preview-frame"></iframe>
+                <iframe id="previewFrame" class="preview-frame"></iframe>
                         </div>
                         <div class="tab-pane fade" id="code" role="tabpanel">
                             <div class="code-container">
@@ -583,17 +1383,17 @@
                                 <pre id="htmlCodeDisplay"></pre>
                             </div>
                         </div>
-                    </div>
+            </div>
 
                     <!-- Action Buttons -->
                     <div class="text-center mt-4">
-                        <button class="btn btn-success me-3" onclick="downloadTransformedHTML()">
-                            <i class="fas fa-download me-2"></i>Download Enhanced HTML
-                        </button>
+                <button class="btn btn-success me-3" onclick="downloadTransformedHTML()">
+                    <i class="fas fa-download me-2"></i>Download Enhanced HTML
+                </button>
                         <button class="btn btn-outline-secondary" onclick="resetForm()">
                             <i class="fas fa-refresh me-2"></i>Transform Another File
-                        </button>
-                    </div>
+                </button>
+            </div>
 
                     <!-- Info Panel -->
                     <div class="info-panel">
