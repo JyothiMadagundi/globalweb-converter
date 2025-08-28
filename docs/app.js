@@ -9,22 +9,10 @@ class GlobalWebConverter {
 
     // Fetch with real timeout using AbortController
     fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
-        try {
-            if (typeof AbortController === 'undefined') {
-                // Fallback for older browsers: race without aborting the fetch
-                return Promise.race([
-                    fetch(url, options),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
-                ]);
-            }
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-            const merged = { ...options, signal: controller.signal };
-            return fetch(url, merged).finally(() => clearTimeout(timeoutId));
-        } catch (_) {
-            // Last-resort fallback
-            return fetch(url, options);
-        }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const merged = { ...options, signal: controller.signal };
+        return fetch(url, merged).finally(() => clearTimeout(timeoutId));
     }
 
     // (Removed glossary/placeholder logic per request)
@@ -71,7 +59,7 @@ class GlobalWebConverter {
     }
 
     // Race multiple providers and return the first successful non-empty translation
-    async raceProviders(cleanText, target = 'en', shortTimeout = 4000, longTimeout = 9000) {
+    async raceProviders(cleanText, target = 'en', shortTimeout = 1500, longTimeout = 3000) {
         const attempt = async (timeoutMs) => {
             const providers = [
                 () => this.providerGoogle(cleanText, target, timeoutMs),
