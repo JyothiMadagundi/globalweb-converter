@@ -478,10 +478,10 @@ class GlobalWebConverter {
                 .catch(() => { left -= 1; if (!done && left === 0) resolve(null); }));
         });
 
-        try { const g = await tryGoogle(1200); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
-        const o1 = await raceOthers(1500); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
-        try { const g2 = await tryGoogle(3000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
-        const o2 = await raceOthers(4000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
+        try { const g = await tryGoogle(3000); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
+        const o1 = await raceOthers(5000); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
+        try { const g2 = await tryGoogle(8000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
+        const o2 = await raceOthers(9000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
         return text;
     }
 
