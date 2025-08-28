@@ -446,8 +446,63 @@ class GlobalWebConverter {
             return 'auto';
         };
 
-        try { const g = await tryGoogle(6000); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
-        try { const g2 = await tryGoogle(10000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
+        // Restore multi-provider strategy for higher reliability
+        const detectMyMemorySourceFromText = (t) => {
+            if (!t) return null;
+            if (/[^\u0000-\u007F]*[\u4e00-\u9fff]/.test(t)) return 'zh-CN';
+            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(t)) return 'ja';
+            if (/[\uac00-\ud7af]/.test(t)) return 'ko';
+            if (/[\u0600-\u06ff]/.test(t)) return 'ar';
+            if (/[\u0900-\u097f]/.test(t)) return 'hi';
+            if (/[\u0e00-\u0e7f]/.test(t)) return 'th';
+            if (/[\u0400-\u04ff]/.test(t)) return 'ru';
+            if (/[\u0590-\u05ff]/.test(t)) return 'he';
+            const s = t.toLowerCase();
+            if (/( der | die | das | und | ist | ein | eine | mit | für )/.test(' '+s+' ')) return 'de';
+            if (/( le | la | les | de | du | des | et | un | une | est | avec )/.test(' '+s+' ')) return 'fr';
+            if (/( el | la | los | las | de | del | y | un | una | es | con )/.test(' '+s+' ')) return 'es';
+            if (/( il | la | lo | gli | le | di | del | e | un | una | è | con )/.test(' '+s+' ')) return 'it';
+            if (/( o | a | os | as | de | do | da | e | um | uma | é | com )/.test(' '+s+' ')) return 'pt';
+            if (/( de | het | een | en | van | is | met | voor | op )/.test(' '+s+' ')) return 'nl';
+            return 'auto';
+        };
+
+        const tryMyMemory = async (timeoutMs) => {
+            const src = detectMyMemorySourceFromText(cleanText) || 'auto';
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${encodeURIComponent(src)}|en`;
+            const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
+            if (!resp.ok) throw new Error('mymemory not ok');
+            const data = await resp.json();
+            const t = (data?.responseData?.translatedText || '').trim();
+            const details = (data?.responseDetails || '').toString().toUpperCase();
+            const invalid = t.toUpperCase().includes("'AUTO' IS AN INVALID") || details.includes('INVALID');
+            if (!invalid && t && t !== cleanText && !t.includes('MYMEMORY WARNING')) return t;
+            throw new Error('mymemory empty');
+        };
+
+        const tryLibre = async (timeoutMs) => {
+            const resp = await this.fetchWithTimeout('https://libretranslate.de/translate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: cleanText, source: 'auto', target: 'en', format: 'text' })
+            }, timeoutMs);
+            if (!resp.ok) throw new Error('libre not ok');
+            const data = await resp.json();
+            const t = (data?.translatedText || '').trim();
+            if (t && t !== cleanText) return t;
+            throw new Error('libre empty');
+        };
+
+        const raceOthers = async (timeoutMs) => new Promise((resolve) => {
+            const starters = [() => tryMyMemory(timeoutMs), () => tryLibre(timeoutMs)];
+            let done = false; let left = starters.length;
+            starters.forEach(s => s().then(r => { if (!done && r) { done = true; resolve(r); } })
+                .catch(() => { left -= 1; if (!done && left === 0) resolve(null); }));
+        });
+
+        try { const g = await tryGoogle(3000); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
+        const o1 = await raceOthers(4000); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
+        try { const g2 = await tryGoogle(7000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
+        const o2 = await raceOthers(9000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
         return text;
     }
 
