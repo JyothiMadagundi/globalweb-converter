@@ -426,26 +426,6 @@ class GlobalWebConverter {
             throw new Error('google empty');
         };
 
-        const detectMyMemorySourceFromText = (t) => {
-            if (!t) return null;
-            if (/[^\u0000-\u007F]*[\u4e00-\u9fff]/.test(t)) return 'zh-CN';
-            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(t)) return 'ja';
-            if (/[\uac00-\ud7af]/.test(t)) return 'ko';
-            if (/[\u0600-\u06ff]/.test(t)) return 'ar';
-            if (/[\u0900-\u097f]/.test(t)) return 'hi';
-            if (/[\u0e00-\u0e7f]/.test(t)) return 'th';
-            if (/[\u0400-\u04ff]/.test(t)) return 'ru';
-            if (/[\u0590-\u05ff]/.test(t)) return 'he';
-            const s = t.toLowerCase();
-            if (/( der | die | das | und | ist | ein | eine | mit | für )/.test(' '+s+' ')) return 'de';
-            if (/( le | la | les | de | du | des | et | un | une | est | avec )/.test(' '+s+' ')) return 'fr';
-            if (/( el | la | los | las | de | del | y | un | una | es | con )/.test(' '+s+' ')) return 'es';
-            if (/( il | la | lo | gli | le | di | del | e | un | una | è | con )/.test(' '+s+' ')) return 'it';
-            if (/( o | a | os | as | de | do | da | e | um | uma | é | com )/.test(' '+s+' ')) return 'pt';
-            if (/( de | het | een | en | van | is | met | voor | op )/.test(' '+s+' ')) return 'nl';
-            return 'auto';
-        };
-
         // Restore multi-provider strategy for higher reliability
         const detectMyMemorySourceFromText = (t) => {
             if (!t) return null;
