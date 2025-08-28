@@ -51,10 +51,11 @@ class GlobalWebConverter {
                 'form[action*="login" i], form[action*="signin" i], form[action*="auth" i], form[action*="customer/login" i], form[id*="login" i], form[class*="login" i]'
             ));
             const pageText = ((doc.body || doc.documentElement).textContent || '').toLowerCase();
-            const keywordSignals = ['login','sign in','signin','username','password','captcha','otp','one time password','pin'];
-            const arabicSignals = ['اسم المستخدم','كلمة المرور','تسجيل الدخول','رمز','تحقق','تفعيل'];
-            const textSignals = keywordSignals.some(k => pageText.includes(k)) || arabicSignals.some(k => pageText.includes(k));
-            if (!forceMask && (hasSensitiveInputs || hasAuthForm || textSignals)) {
+            const hasUser = pageText.includes('username') || pageText.includes('اسم المستخدم');
+            const hasPass = pageText.includes('password') || pageText.includes('كلمة المرور');
+            const hasLoginWord = pageText.includes('login') || pageText.includes('sign in') || pageText.includes('signin') || pageText.includes('تسجيل الدخول');
+            const keywordBasedAuth = (hasUser && hasPass) || (hasLoginWord && hasPass);
+            if (!forceMask && (hasSensitiveInputs || hasAuthForm || keywordBasedAuth)) {
                 return htmlContent;
             }
 
@@ -371,7 +372,7 @@ class GlobalWebConverter {
         };
         
         collectTextNodes(element);
-
+        
         if (candidates.length === 0) return;
 
         const uniqueTexts = Array.from(new Set(candidates.map(c => c.original)));
@@ -425,13 +426,36 @@ class GlobalWebConverter {
             throw new Error('google empty');
         };
 
+        const detectMyMemorySourceFromText = (t) => {
+            if (!t) return null;
+            if (/[^\u0000-\u007F]*[\u4e00-\u9fff]/.test(t)) return 'zh-CN';
+            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(t)) return 'ja';
+            if (/[\uac00-\ud7af]/.test(t)) return 'ko';
+            if (/[\u0600-\u06ff]/.test(t)) return 'ar';
+            if (/[\u0900-\u097f]/.test(t)) return 'hi';
+            if (/[\u0e00-\u0e7f]/.test(t)) return 'th';
+            if (/[\u0400-\u04ff]/.test(t)) return 'ru';
+            if (/[\u0590-\u05ff]/.test(t)) return 'he';
+            const s = t.toLowerCase();
+            if (/( der | die | das | und | ist | ein | eine | mit | für )/.test(' '+s+' ')) return 'de';
+            if (/( le | la | les | de | du | des | et | un | une | est | avec )/.test(' '+s+' ')) return 'fr';
+            if (/( el | la | los | las | de | del | y | un | una | es | con )/.test(' '+s+' ')) return 'es';
+            if (/( il | la | lo | gli | le | di | del | e | un | una | è | con )/.test(' '+s+' ')) return 'it';
+            if (/( o | a | os | as | de | do | da | e | um | uma | é | com )/.test(' '+s+' ')) return 'pt';
+            if (/( de | het | een | en | van | is | met | voor | op )/.test(' '+s+' ')) return 'nl';
+            return 'auto';
+        };
+
         const tryMyMemory = async (timeoutMs) => {
-            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=auto|en`;
+            const src = detectMyMemorySourceFromText(cleanText) || 'auto';
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${encodeURIComponent(src)}|en`;
             const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
             if (!resp.ok) throw new Error('mymemory not ok');
             const data = await resp.json();
             const t = (data?.responseData?.translatedText || '').trim();
-            if (t && t !== cleanText && !t.includes('MYMEMORY WARNING')) return t;
+            const details = (data?.responseDetails || '').toString().toUpperCase();
+            const invalid = t.toUpperCase().includes("'AUTO' IS AN INVALID") || details.includes('INVALID');
+            if (!invalid && t && t !== cleanText && !t.includes('MYMEMORY WARNING')) return t;
             throw new Error('mymemory empty');
         };
 
