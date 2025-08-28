@@ -1,0 +1,47 @@
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+app.log
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+
+# Documentation
+README.md
+DEPLOYMENT.md
+*.md
+
+# Config files not needed in container
+.env
+.env.local
+
+# Test files
+src/test/
+
+# Maven wrapper (we install maven in dockerfile)
+.mvn/
+mvnw
+mvnw.cmd
