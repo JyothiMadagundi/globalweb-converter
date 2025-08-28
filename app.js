@@ -3,7 +3,26 @@ class GlobalWebConverter {
     constructor() {
         this.currentHtmlContent = '';
         this.transformedHTML = '';
+        this.translationCache = new Map();
         this.initializeEventListeners();
+    }
+
+    // Fetch with timeout; works even if AbortController is unavailable
+    fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+        try {
+            if (typeof AbortController === 'undefined') {
+                return Promise.race([
+                    fetch(url, options),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+                ]);
+            }
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            const merged = { ...options, signal: controller.signal };
+            return fetch(url, merged).finally(() => clearTimeout(timeoutId));
+        } catch (_) {
+            return fetch(url, options);
+        }
     }
 
     // Initialize event listeners
@@ -230,43 +249,22 @@ class GlobalWebConverter {
     async translateTextNodes(element) {
         if (!element) return;
         
-        const translationPromises = [];
+        const candidates = [];
         
         // Collect all text nodes that need translation
         const collectTextNodes = (elem) => {
             for (let node of elem.childNodes) {
                 if (node.nodeType === Node.TEXT_NODE) {
-                    const text = node.textContent.trim();
-                    if (text.length > 2 && !this.isEnglish(text)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(text).then(translated => {
-                                node.textContent = translated;
-                            })
-                        );
+                    const raw = node.textContent || '';
+                    const text = raw.trim();
+                    if (text.length > 0 && !this.isEnglish(text) && !/^[\d\s.,:/\-]+$/.test(text) && !/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)) {
+                        candidates.push({ kind: 'text', node, original: text });
                     }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     // Handle attributes
-                    if (node.title && !this.isEnglish(node.title)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.title).then(translated => {
-                                node.title = translated;
-                            })
-                        );
-                    }
-                    if (node.alt && !this.isEnglish(node.alt)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.alt).then(translated => {
-                                node.alt = translated;
-                            })
-                        );
-                    }
-                    if (node.placeholder && !this.isEnglish(node.placeholder)) {
-                        translationPromises.push(
-                            this.simulateTextTranslation(node.placeholder).then(translated => {
-                                node.placeholder = translated;
-                            })
-                        );
-                    }
+                    if (node.title && !this.isEnglish(node.title)) candidates.push({ kind: 'attr', attr: 'title', node, original: node.title });
+                    if (node.alt && !this.isEnglish(node.alt)) candidates.push({ kind: 'attr', attr: 'alt', node, original: node.alt });
+                    if (node.placeholder && !this.isEnglish(node.placeholder)) candidates.push({ kind: 'attr', attr: 'placeholder', node, original: node.placeholder });
                     // Recursively process child elements
                     collectTextNodes(node);
                 }
@@ -274,88 +272,93 @@ class GlobalWebConverter {
         };
         
         collectTextNodes(element);
-        
-        // Wait for all translations to complete
-        await Promise.all(translationPromises);
+
+        if (candidates.length === 0) return;
+
+        const uniqueTexts = Array.from(new Set(candidates.map(c => c.original)));
+        const results = new Map();
+
+        const worker = async (text) => {
+            try {
+                const translated = await this.simulateTextTranslation(text);
+                results.set(text, translated);
+            } catch (_) {
+                results.set(text, text);
+            }
+        };
+
+        const concurrency = 16;
+        let index = 0;
+        const runners = Array.from({ length: Math.min(concurrency, uniqueTexts.length) }, async () => {
+            while (true) {
+                const i = index++;
+                if (i >= uniqueTexts.length) break;
+                await worker(uniqueTexts[i]);
+            }
+        });
+        await Promise.all(runners);
+
+        for (const c of candidates) {
+            const translated = results.get(c.original) ?? c.original;
+            if (c.kind === 'text') c.node.textContent = translated;
+            else c.node[c.attr] = translated;
+        }
     }
 
     // Real text translation using multiple free translation APIs
     async simulateTextTranslation(text) {
-        // Skip if already English or too short
-        if (this.isEnglish(text) || text.trim().length < 2) {
-            return text;
-        }
-        
         const cleanText = text.trim();
-        
-        try {
-            // Try MyMemory API first (most reliable for Chinese)
-            const myMemoryResponse = await fetch(
-                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=auto|en`,
-                { timeout: 5000 }
-            );
-            
-            if (myMemoryResponse.ok) {
-                const data = await myMemoryResponse.json();
-                if (data.responseStatus === 200 && data.responseData.translatedText) {
-                    const translated = data.responseData.translatedText.trim();
-                    // Check if translation is meaningful (not just copied text)
-                    if (translated && translated !== cleanText && !translated.includes('MYMEMORY WARNING')) {
-                        return translated;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('MyMemory API error, trying fallback...');
-        }
-        
-        try {
-            // Fallback 1: Try LibreTranslate public instance
-            const libreResponse = await fetch('https://libretranslate.de/translate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    q: cleanText,
-                    source: 'auto',
-                    target: 'en',
-                    format: 'text'
-                }),
-                timeout: 5000
-            });
-            
-            if (libreResponse.ok) {
-                const data = await libreResponse.json();
-                if (data.translatedText && data.translatedText !== cleanText) {
-                    return data.translatedText.trim();
-                }
-            }
-        } catch (error) {
-            console.log('LibreTranslate API error, trying another API...');
-        }
+        if (!cleanText || this.isEnglish(cleanText)) return text;
 
-        try {
-            // Fallback 2: Try another free translation service
-            const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(cleanText)}`, {
-                timeout: 3000
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data[0] && data[0][0] && data[0][0][0]) {
-                    const translated = data[0][0][0].trim();
-                    if (translated && translated !== cleanText) {
-                        return translated;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Google Translate API error, no more fallbacks available...');
-        }
-        
-        // Final fallback: Return original text if all APIs fail
-        // NO PRE-FED DATA - purely API-based translation
+        const cacheKey = `en|${cleanText}`;
+        const cached = this.translationCache.get(cacheKey);
+        if (cached) return cached;
+
+        // Prefer Google for accuracy (short), then MyMemory/Libre (short), then retry longer
+        const tryGoogle = async (timeoutMs) => {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(cleanText)}`;
+            const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
+            if (!resp.ok) throw new Error('google not ok');
+            const data = await resp.json();
+            const segments = Array.isArray(data?.[0]) ? data[0].map(row => row?.[0]).filter(Boolean) : [];
+            const translated = segments.join(' ').trim();
+            if (translated && translated !== cleanText) return translated;
+            throw new Error('google empty');
+        };
+
+        const tryMyMemory = async (timeoutMs) => {
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=auto|en`;
+            const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
+            if (!resp.ok) throw new Error('mymemory not ok');
+            const data = await resp.json();
+            const t = (data?.responseData?.translatedText || '').trim();
+            if (t && t !== cleanText && !t.includes('MYMEMORY WARNING')) return t;
+            throw new Error('mymemory empty');
+        };
+
+        const tryLibre = async (timeoutMs) => {
+            const resp = await this.fetchWithTimeout('https://libretranslate.de/translate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: cleanText, source: 'auto', target: 'en', format: 'text' })
+            }, timeoutMs);
+            if (!resp.ok) throw new Error('libre not ok');
+            const data = await resp.json();
+            const t = (data?.translatedText || '').trim();
+            if (t && t !== cleanText) return t;
+            throw new Error('libre empty');
+        };
+
+        const raceOthers = async (timeoutMs) => new Promise((resolve) => {
+            const starters = [() => tryMyMemory(timeoutMs), () => tryLibre(timeoutMs)];
+            let done = false; let left = starters.length;
+            starters.forEach(s => s().then(r => { if (!done && r) { done = true; resolve(r); } })
+                .catch(() => { left -= 1; if (!done && left === 0) resolve(null); }));
+        });
+
+        try { const g = await tryGoogle(1200); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
+        const o1 = await raceOthers(1500); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
+        try { const g2 = await tryGoogle(3000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
+        const o2 = await raceOthers(4000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
         return text;
     }
 
