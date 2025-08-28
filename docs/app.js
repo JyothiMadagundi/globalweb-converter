@@ -25,6 +25,105 @@ class GlobalWebConverter {
         }
     }
 
+    // Strip all <script> tags and inline event handlers (onclick, onload, etc.)
+    stripScriptsAndEventHandlers(htmlContent) {
+        if (!htmlContent) return htmlContent;
+        let cleaned = htmlContent;
+        cleaned = cleaned.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+        cleaned = cleaned.replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        return cleaned;
+    }
+
+    // Mask numbers and emails; skip masking on login/auth pages unless window.FORCE_MASKING === true
+    maskNumericAndAtExceptLogin(htmlContent) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            const forceMask = (typeof window !== 'undefined' && window.FORCE_MASKING === true);
+            const selectorSignals = [
+                'input[type="password"]', 'input[name*="pass" i]', 'input[id*="pass" i]',
+                'input[autocomplete="current-password" i]', 'input[autocomplete="one-time-code" i]',
+                'input[name*="otp" i]', 'input[id*="otp" i]', '[id*="captcha" i]', '[class*="captcha" i]', 'img[alt*="captcha" i]'
+            ].join(',');
+            const hasSensitiveInputs = !!(doc.querySelector && doc.querySelector(selectorSignals));
+            const hasAuthForm = !!(doc.querySelector && doc.querySelector(
+                'form[action*="login" i], form[action*="signin" i], form[action*="auth" i], form[action*="customer/login" i], form[id*="login" i], form[class*="login" i]'
+            ));
+            const pageText = ((doc.body || doc.documentElement).textContent || '').toLowerCase();
+            const keywordSignals = ['login','sign in','signin','username','password','captcha','otp','one time password','pin'];
+            const arabicSignals = ['اسم المستخدم','كلمة المرور','تسجيل الدخول','رمز','تحقق','تفعيل'];
+            const textSignals = keywordSignals.some(k => pageText.includes(k)) || arabicSignals.some(k => pageText.includes(k));
+            if (!forceMask && (hasSensitiveInputs || hasAuthForm || textSignals)) {
+                return htmlContent;
+            }
+
+            const NA = 'NA';
+            const NUM_RE = /(\d{2,}(?:[.,]\d+)*|\d)/g; // numbers
+            const EMAIL_RE = /([A-Za-z0-9._%+-])([A-Za-z0-9._%+-]*)(@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+            const COMBINED_RE = new RegExp(`${NUM_RE.source}|${EMAIL_RE.source}`, 'g');
+
+            const replaceInTextNode = (textNode) => {
+                const text = textNode.nodeValue || '';
+                if (!COMBINED_RE.test(text)) { COMBINED_RE.lastIndex = 0; return; }
+                COMBINED_RE.lastIndex = 0;
+                const frag = doc.createDocumentFragment();
+                let last = 0; let m;
+                while ((m = COMBINED_RE.exec(text)) !== null) {
+                    const idx = m.index;
+                    if (idx > last) frag.appendChild(doc.createTextNode(text.slice(last, idx)));
+                    if (m[1]) {
+                        const span = doc.createElement('span');
+                        span.className = 'masked-sensitive';
+                        span.textContent = NA;
+                        frag.appendChild(span);
+                    } else {
+                        const firstChar = m[2] || '';
+                        const domain = m[4] || '';
+                        if (firstChar) frag.appendChild(doc.createTextNode(firstChar));
+                        const span = doc.createElement('span');
+                        span.className = 'masked-sensitive';
+                        span.textContent = NA;
+                        frag.appendChild(span);
+                        if (domain) frag.appendChild(doc.createTextNode(domain));
+                    }
+                    last = idx + m[0].length;
+                }
+                if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
+                if (textNode.parentNode) textNode.parentNode.replaceChild(frag, textNode);
+            };
+
+            const walker = doc.createTreeWalker(doc.body || doc.documentElement, NodeFilter.SHOW_TEXT, null);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(replaceInTextNode);
+
+            (doc.body || doc.documentElement).querySelectorAll('*').forEach((el) => {
+                const tag = (el.tagName || '').toUpperCase();
+                if (tag === 'SCRIPT' || tag === 'STYLE') return;
+                ['value','title','alt','aria-label','placeholder'].forEach((attr) => {
+                    if (el.hasAttribute && el.hasAttribute(attr)) {
+                        let v0 = el.getAttribute(attr) || '';
+                        if (!v0) return;
+                        v0 = v0.replace(EMAIL_RE, (full, first, rest, domain) => `${first}${NA}${domain}`);
+                        NUM_RE.lastIndex = 0;
+                        v0 = v0.replace(NUM_RE, NA);
+                        el.setAttribute(attr, v0);
+                    }
+                });
+            });
+
+            // Light style for masked content
+            const style = doc.createElement('style');
+            style.textContent = `.masked-sensitive { color: #bfc5cf !important; }`;
+            (doc.head || doc.documentElement).appendChild(style);
+
+            return doc.documentElement.outerHTML;
+        } catch (_) {
+            return htmlContent;
+        }
+    }
+
     // Initialize event listeners
     initializeEventListeners() {
         const fileInput = document.getElementById('fileInput');
@@ -418,7 +517,10 @@ class GlobalWebConverter {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
             console.log('Detected language:', detectedLanguage);
             
-            const result = await this.translateWithMicrosoft(this.currentHtmlContent, detectedLanguage);
+            // Mask first (unless login), and strip scripts/handlers for stability
+            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
+            const prepped = this.stripScriptsAndEventHandlers(masked);
+            const result = await this.translateWithMicrosoft(prepped, detectedLanguage);
             console.log('Translation result:', result);
 
             this.showLoading(false);
@@ -447,7 +549,9 @@ class GlobalWebConverter {
         // Add small delay for smooth UX
         setTimeout(async () => {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-            const result = await this.translateWithMicrosoft(this.currentHtmlContent, detectedLanguage);
+            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
+            const prepped = this.stripScriptsAndEventHandlers(masked);
+            const result = await this.translateWithMicrosoft(prepped, detectedLanguage);
 
             this.showLoading(false);
 
