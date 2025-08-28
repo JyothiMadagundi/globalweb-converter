@@ -357,14 +357,14 @@ class GlobalWebConverter {
                 if (node.nodeType === Node.TEXT_NODE) {
                     const raw = node.textContent || '';
                     const text = raw.trim();
-                    if (text.length > 0 && !this.isEnglish(text) && !/^[\d\s.,:/\-]+$/.test(text) && !/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)) {
+                    if (text.length > 0 && !/^[\d\s.,:/\-]+$/.test(text) && !/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)) {
                         candidates.push({ kind: 'text', node, original: text });
                     }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     // Handle attributes
-                    if (node.title && !this.isEnglish(node.title)) candidates.push({ kind: 'attr', attr: 'title', node, original: node.title });
-                    if (node.alt && !this.isEnglish(node.alt)) candidates.push({ kind: 'attr', attr: 'alt', node, original: node.alt });
-                    if (node.placeholder && !this.isEnglish(node.placeholder)) candidates.push({ kind: 'attr', attr: 'placeholder', node, original: node.placeholder });
+                    if (node.title) candidates.push({ kind: 'attr', attr: 'title', node, original: node.title });
+                    if (node.alt) candidates.push({ kind: 'attr', attr: 'alt', node, original: node.alt });
+                    if (node.placeholder) candidates.push({ kind: 'attr', attr: 'placeholder', node, original: node.placeholder });
                     // Recursively process child elements
                     collectTextNodes(node);
                 }
