@@ -191,17 +191,42 @@ class GlobalWebConverter {
             return;
         }
 
-        // Read file
+        // Read file as bytes and decode according to <meta charset>
+        const sniffCharsetFromHead = (bytes) => {
+            try {
+                const headLen = Math.min(bytes.byteLength, 8192);
+                const head = new TextDecoder('iso-8859-1').decode(new Uint8Array(bytes, 0, headLen));
+                const m1 = head.match(/<meta[^>]*charset\s*=\s*"?([^\s"'>;]+)/i);
+                if (m1 && m1[1]) return m1[1].toLowerCase();
+                const m2 = head.match(/<meta[^>]*http-equiv\s*=\s*"?content-type"?[^>]*content\s*=\s*"[^"]*charset=([^";'>]+)/i);
+                if (m2 && m2[1]) return m2[1].toLowerCase();
+            } catch (_) {}
+            return 'utf-8';
+        };
+        const decodeBytes = (bytes) => {
+            const enc = sniffCharsetFromHead(bytes);
+            const map = { 'shift_jis': 'shift_jis', 'shift-jis': 'shift_jis', 'sjis': 'shift_jis', 'euc-jp': 'euc-jp', 'gbk': 'gbk', 'gb2312': 'gbk', 'big5': 'big5', 'utf8': 'utf-8', 'utf-8': 'utf-8' };
+            const chosen = map[enc] || 'utf-8';
+            try { return new TextDecoder(chosen).decode(new Uint8Array(bytes)); } catch (_) {}
+            try { return new TextDecoder('utf-8').decode(new Uint8Array(bytes)); } catch (_) {}
+            return '';
+        };
         const reader = new FileReader();
         reader.onload = (e) => {
-            this.currentHtmlContent = e.target.result;
-            document.getElementById('htmlContent').value = this.currentHtmlContent;
-            this.showNotification('File loaded successfully!', 'success');
+            try {
+                const buf = e.target.result;
+                const html = decodeBytes(buf);
+                this.currentHtmlContent = html;
+                document.getElementById('htmlContent').value = this.currentHtmlContent;
+                this.showNotification('File loaded successfully!', 'success');
+            } catch (_) {
+                this.showNotification('Error decoding file', 'error');
+            }
         };
         reader.onerror = () => {
             this.showNotification('Error reading file', 'error');
         };
-        reader.readAsText(file);
+        reader.readAsArrayBuffer(file);
     }
 
     // Detect language from HTML content
@@ -414,7 +439,23 @@ class GlobalWebConverter {
         const cached = this.translationCache.get(cacheKey);
         if (cached) return cached;
 
-        // Prefer Google for accuracy (short), then MyMemory/Libre (short), then retry longer
+        // Sentence splitter for long strings (handles ., !, ?, Arabic/Chinese/Japanese punctuation)
+        const splitSentences = (t) => {
+            const out = [];
+            let buf = '';
+            const breakers = /([.!?؛。！？])+/;
+            for (const ch of t) {
+                buf += ch;
+                if (breakers.test(ch)) {
+                    out.push(buf);
+                    buf = '';
+                }
+            }
+            if (buf.trim()) out.push(buf);
+            return out.length ? out : [t];
+        };
+
+        // Prefer Google for short segments, Libre/MyMemory for longer; retry with longer timeouts
         const tryGoogle = async (timeoutMs) => {
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(cleanText)}`;
             const resp = await this.fetchWithTimeout(url, {}, timeoutMs);
@@ -479,10 +520,66 @@ class GlobalWebConverter {
                 .catch(() => { left -= 1; if (!done && left === 0) resolve(null); }));
         });
 
-        try { const g = await tryGoogle(3000); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
-        const o1 = await raceOthers(4000); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
-        try { const g2 = await tryGoogle(7000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
-        const o2 = await raceOthers(9000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
+        // If very long, translate sentence-by-sentence then join
+        if (cleanText.length > 300) {
+            const parts = splitSentences(cleanText);
+            const out = [];
+            for (const p of parts) {
+                const key = `en|${p}`;
+                const cachedP = this.translationCache.get(key);
+                if (cachedP) { out.push(cachedP); continue; }
+                let tr = null;
+                // For short sentences, try Google quickly; otherwise try Libre first
+                if (p.length <= 200) {
+                    try { tr = await (async () => {
+                        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(p)}`;
+                        const resp = await this.fetchWithTimeout(url, {}, 5000);
+                        if (!resp.ok) throw new Error('google not ok');
+                        const data = await resp.json();
+                        const seg = Array.isArray(data?.[0]) ? data[0].map(row => row?.[0]).filter(Boolean) : [];
+                        const t = seg.join(' ').trim();
+                        if (t && t !== p) return t; throw new Error('empty');
+                    })(); } catch (_) {}
+                }
+                if (!tr) {
+                    try { tr = await (async () => {
+                        const resp = await this.fetchWithTimeout('https://libretranslate.de/translate', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ q: p, source: 'auto', target: 'en', format: 'text' })
+                        }, 7000);
+                        if (!resp.ok) throw new Error('libre not ok');
+                        const data = await resp.json();
+                        const t = (data?.translatedText || '').trim();
+                        if (t && t !== p) return t; throw new Error('empty');
+                    })(); } catch (_) {}
+                }
+                if (!tr) {
+                    try { tr = await (async () => {
+                        const src = detectMyMemorySourceFromText(p) || 'auto';
+                        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(p)}&langpair=${encodeURIComponent(src)}|en`;
+                        const resp = await this.fetchWithTimeout(url, {}, 8000);
+                        if (!resp.ok) throw new Error('mymemory not ok');
+                        const data = await resp.json();
+                        const t = (data?.responseData?.translatedText || '').trim();
+                        const details = (data?.responseDetails || '').toString().toUpperCase();
+                        const invalid = t.toUpperCase().includes("'AUTO' IS AN INVALID") || details.includes('INVALID');
+                        if (!invalid && t && t !== p && !t.includes('MYMEMORY WARNING')) return t; throw new Error('empty');
+                    })(); } catch (_) {}
+                }
+                const finalP = tr || p;
+                this.translationCache.set(key, finalP);
+                out.push(finalP);
+            }
+            const joined = out.join(' ');
+            this.translationCache.set(cacheKey, joined);
+            return joined;
+        }
+
+        // Short/medium texts: try Google (5s) → Libre/MyMemory (7s) → Google again (10s) → others (12s)
+        try { const g = await tryGoogle(5000); if (g) { this.translationCache.set(cacheKey, g); return g; } } catch (_) {}
+        const o1 = await raceOthers(7000); if (o1) { this.translationCache.set(cacheKey, o1); return o1; }
+        try { const g2 = await tryGoogle(10000); if (g2) { this.translationCache.set(cacheKey, g2); return g2; } } catch (_) {}
+        const o2 = await raceOthers(12000); if (o2) { this.translationCache.set(cacheKey, o2); return o2; }
         return text;
     }
 
@@ -542,16 +639,17 @@ class GlobalWebConverter {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
             console.log('Detected language:', detectedLanguage);
             
-            // Mask first (unless login), and strip scripts/handlers for stability
-            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
-            const prepped = this.stripScriptsAndEventHandlers(masked);
+            // Strip scripts/handlers first for stability
+            const prepped = this.stripScriptsAndEventHandlers(this.currentHtmlContent);
+            // Translate first for accuracy, then mask
             const result = await this.translateWithMicrosoft(prepped, detectedLanguage);
             console.log('Translation result:', result);
 
             this.showLoading(false);
 
             if (result.success) {
-                this.displayPreview(result.html, result.detectedLanguage, result.processingTime);
+                const maskedAfter = this.maskNumericAndAtExceptLogin(result.html);
+                this.displayPreview(maskedAfter, result.detectedLanguage, result.processingTime);
                 // Show success doll popup instead of notification
                 setTimeout(() => this.showSuccessDoll(), 500);
             } else {
@@ -574,14 +672,14 @@ class GlobalWebConverter {
         // Add small delay for smooth UX
         setTimeout(async () => {
             const detectedLanguage = this.detectLanguageFromContent(this.currentHtmlContent);
-            const masked = this.maskNumericAndAtExceptLogin(this.currentHtmlContent);
-            const prepped = this.stripScriptsAndEventHandlers(masked);
+            const prepped = this.stripScriptsAndEventHandlers(this.currentHtmlContent);
             const result = await this.translateWithMicrosoft(prepped, detectedLanguage);
 
             this.showLoading(false);
 
             if (result.success) {
-                this.downloadHTML(result.html, result.detectedLanguage);
+                const maskedAfter = this.maskNumericAndAtExceptLogin(result.html);
+                this.downloadHTML(maskedAfter, result.detectedLanguage);
                 // Show success doll popup instead of notification
                 setTimeout(() => this.showSuccessDoll(), 300);
             } else {
