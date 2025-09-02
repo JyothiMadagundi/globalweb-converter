@@ -217,8 +217,8 @@ class GlobalWebConverter {
                 const buf = e.target.result;
                 const html = decodeBytes(buf);
                 this.currentHtmlContent = html;
-                document.getElementById('htmlContent').value = this.currentHtmlContent;
-                this.showNotification('File loaded successfully!', 'success');
+            document.getElementById('htmlContent').value = this.currentHtmlContent;
+            this.showNotification('File loaded successfully!', 'success');
             } catch (_) {
                 this.showNotification('Error decoding file', 'error');
             }
@@ -583,29 +583,37 @@ class GlobalWebConverter {
         return text;
     }
 
-    // Universal language detection - NO PRE-FED DATA
+    // Better English detection to avoid skipping translation for Spanish/French/etc.
     isEnglish(text) {
-        const cleanText = text.trim();
-        
-        // Skip very short text, numbers, or common symbols
-        if (cleanText.length < 2 || /^[\d\s.,!?'"()\-_+=<>/\\|@#$%^&*[\]{}~`]+$/.test(cleanText)) {
-            return true;
-        }
-        
-        // Check for non-Latin scripts (definitely not English)
-        // This covers: Chinese, Japanese, Korean, Arabic, Russian, Hindi, Thai, etc.
-        const nonLatinPattern = /[\u4e00-\u9fff\u3400-\u4dbf\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u3040-\u309f\u30a0-\u30ff\u0e00-\u0e7f\u0900-\u097f\u1100-\u11ff\uac00-\ud7af]/;
-        
-        if (nonLatinPattern.test(text)) {
-            return false; // Contains non-Latin characters, definitely not English
-        }
-        
-        // For Latin-based scripts, use basic heuristic
-        // If it contains mostly English letters and common English patterns, assume English
-        const englishPattern = /^[a-zA-Z0-9\s.,!?'"()\-_+=<>/\\|@#$%^&*[\]{}~`]+$/;
-        
-        // If it doesn't match basic English pattern, it's probably another language
-        return englishPattern.test(text);
+        const cleanText = (text || '').trim();
+        if (cleanText.length < 2) return true; // trivial
+
+        // Non‑Latin scripts → not English
+        const nonLatin = /[\u4e00-\u9fff\u3400-\u4dbf\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u3040-\u309f\u30a0-\u30ff\u0e00-\u0e7f\u0900-\u097f\u1100-\u11ff\uac00-\ud7af]/;
+        if (nonLatin.test(cleanText)) return false;
+
+        // If the text clearly matches common words from other Latin languages, treat as non‑English
+        const s = ` ${cleanText.toLowerCase()} `;
+        const nonEnglishSignals = [
+            // Spanish
+            /( el | la | los | las | de | del | y | un | una | es | con | para | por | no | usuario | inactivo | permitido )/,
+            // French
+            /( le | la | les | de | du | des | et | un | une | est | avec | pour )/,
+            // German
+            /( der | die | das | und | ist | ein | eine | mit | für )/,
+            // Italian
+            /( il | lo | la | gli | le | di | del | dei | e | con | per )/,
+            // Portuguese
+            /( o | a | os | as | de | do | da | e | um | uma | é | com | para )/
+        ];
+        if (nonEnglishSignals.some((re) => re.test(s))) return false;
+
+        // English stopwords presence → likely English
+        const englishSignals = [' the ', ' and ', ' is ', ' are ', ' of ', ' to ', ' for ', ' in ', ' on ', ' with ', ' not ', ' user '];
+        if (englishSignals.some((w) => s.includes(w))) return true;
+
+        // Default: assume NOT English so we attempt translation
+        return false;
     }
 
     // Fallback text content translation
